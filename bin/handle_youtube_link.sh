@@ -426,103 +426,46 @@ if [[ -z "$DOWNLOADED_FILE_FULL_PATH" || ! -f "$DOWNLOADED_FILE_FULL_PATH" ]]; t
 fi
 
 #==============================================================================
-# FILENAME NORMALIZATION AND CORRECTION
-#==============================================================================
-# Convert underscores to spaces and fix common English contractions
-# for better readability in media libraries
-original_downloaded_filename=$(basename "$DOWNLOADED_FILE_FULL_PATH")
-download_dir=$(dirname "$DOWNLOADED_FILE_FULL_PATH") 
-file_ext="${original_downloaded_filename##*.}"
-filename_no_ext="${original_downloaded_filename%.*}"
-
-# Step 1: Convert underscores to spaces for readability
-filename_with_spaces_initial=$(echo "$filename_no_ext" | tr '_' ' ')
-
-# Step 2: Fix possessive 's patterns (e.g., "user s" -> "user's")
-filename_corrected_possessive_s=$(echo "$filename_with_spaces_initial" | sed -e 's/ s /s /g' -e 's/ s$/s/')
-
-# Step 3: Fix common English contractions for natural language appearance
-filename_with_fixed_contractions=$(echo "$filename_corrected_possessive_s" | 
-    sed -E "
-        # Fix 're contractions (they're, we're, you're)
-        s/([[:alpha:]]+) re /\1're /g;
-        # Fix 'll contractions (we'll, they'll, he'll)
-        s/([[:alpha:]]+) ll /\1'll /g;
-        # Fix 've contractions (could've, would've, they've)
-        s/([[:alpha:]]+) ve /\1've /g;
-        # Fix 'm contractions (I'm)
-        s/([[:alpha:]]+) m /\1'm /g;
-        # Fix 'd contractions (they'd, we'd, etc.)
-        s/([[:alpha:]]+) d /\1'd /g;
-        # Fix 't contraction (isn't, wasn't, don't, won't, can't)
-        s/([[:alpha:]]+) t /\1't /g;
-    ")
-
-# Apply the corrected filename
-final_local_filename_no_ext="$filename_with_fixed_contractions"
-final_local_filename="${final_local_filename_no_ext}.${file_ext}"
-final_local_full_path="${download_dir}/${final_local_filename}" 
-
-# Rename file if corrections were made
-if [[ "$DOWNLOADED_FILE_FULL_PATH" != "$final_local_full_path" ]]; then
-    log_user_progress "YouTube" "Renaming '$original_downloaded_filename' to '$final_local_filename'..."
-    if mv "$DOWNLOADED_FILE_FULL_PATH" "$final_local_full_path"; then
-        log_debug_event "YouTube" "Successfully renamed to '$final_local_filename'"
-        DOWNLOADED_FILE_FULL_PATH="$final_local_full_path" 
-    else
-        log_error_event "YouTube" "Failed to rename '$original_downloaded_filename' to '$final_local_filename'. Proceeding with original name."
-        final_local_filename="$original_downloaded_filename" 
-    fi
-else
-    log_debug_event "YouTube" "Filename '$original_downloaded_filename' does not require renaming based on underscore/possessive/contraction rules."
-    final_local_filename="$original_downloaded_filename" 
-fi
-
-log_user_success "YouTube" "✅ Confirmed media file for processing: '$final_local_filename'"
-
-#==============================================================================
 # FILENAME LENGTH VALIDATION AND TRUNCATION
 #==============================================================================
-# Ensure filename doesn't exceed macOS filesystem limits
+# Get the original filename and directory
+original_downloaded_filename=$(basename "$DOWNLOADED_FILE_FULL_PATH")
+download_dir=$(dirname "$DOWNLOADED_FILE_FULL_PATH")
+
+# Only keep the length check for filesystem limits
 max_filename_length=200  # Conservative limit for cross-filesystem compatibility
 
-if [[ ${#final_local_filename} -gt $max_filename_length ]]; then
-    log_user_progress "YouTube" "Filename too long (${#final_local_filename} chars), truncating to $max_filename_length..."
+if [[ ${#original_downloaded_filename} -gt $max_filename_length ]]; then
+    log_user_progress "YouTube" "Filename too long (${#original_downloaded_filename} chars), truncating to $max_filename_length..."
     
-    # Extract extension
-    file_ext="${final_local_filename##*.}"
-    filename_no_ext="${final_local_filename%.*}"
-    
-    # Calculate available space for filename (minus extension and dot)
+    # Extract extension and truncate
+    file_ext="${original_downloaded_filename##*.}"
+    filename_no_ext="${original_downloaded_filename%.*}"
     available_length=$((max_filename_length - ${#file_ext} - 1))
     
-    # Truncate filename and add ellipsis indicator
     if [[ $available_length -gt 3 ]]; then
         truncated_filename_no_ext="${filename_no_ext:0:$((available_length - 3))}..."
     else
-        # Fallback for very short available length
         truncated_filename_no_ext="${filename_no_ext:0:$available_length}"
     fi
     
-    # Reconstruct filename
-    truncated_final_local_filename="${truncated_filename_no_ext}.${file_ext}"
-    original_final_local_filename="$final_local_filename"
-    final_local_filename="$truncated_final_local_filename"
+    final_local_filename="${truncated_filename_no_ext}.${file_ext}"
+    final_local_full_path="${download_dir}/${final_local_filename}"
     
-    # Update file paths
-    truncated_final_local_full_path="${download_dir}/${final_local_filename}"
-    
-    # Rename the file to truncated version
-    if mv "$DOWNLOADED_FILE_FULL_PATH" "$truncated_final_local_full_path"; then
-        log_debug_event "YouTube" "Successfully truncated filename: '${original_final_local_filename}' -> '$final_local_filename'"
-        DOWNLOADED_FILE_FULL_PATH="$truncated_final_local_full_path"
+    # Rename with proper quoting
+    if mv -- "$DOWNLOADED_FILE_FULL_PATH" "$final_local_full_path"; then
+        log_debug_event "YouTube" "Successfully truncated filename to: '$final_local_filename'"
+        DOWNLOADED_FILE_FULL_PATH="$final_local_full_path"
     else
         log_error_event "YouTube" "Failed to rename file for length truncation. Proceeding with original name."
-        final_local_filename="$original_final_local_filename"
+        final_local_filename="$original_downloaded_filename"
     fi
 else
-    log_debug_event "YouTube" "Filename length OK (${#final_local_filename} chars, max: $max_filename_length)"
+    final_local_filename="$original_downloaded_filename"
+    final_local_full_path="$DOWNLOADED_FILE_FULL_PATH"
 fi
+
+log_user_success "YouTube" "✅ Confirmed media file: '${final_local_filename//\'/\'\\\'\'}'"
 
 #==============================================================================
 # FINAL TRANSFER TO DESTINATION
@@ -581,21 +524,19 @@ fi
 # Transfer the single video file
 transfer_failed=false
 if [[ "$final_destination_dir" == /Volumes/* ]]; then
-    # Network destination - use rsync with retry logic for the FILE
+    # Network destination - use rsync with proper quoting
     log_user_progress "YouTube" "Transferring (network) '$final_local_filename' to '$final_destination_dir'..."
-    # Add --remove-source-files to the rsync options
-    if ! rsync_with_network_retry "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file" "-a --progress --remove-source-files"; then
+    if ! rsync_with_network_retry -- "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file" "-a --progress --remove-source-files"; then
         log_error_event "YouTube" "Failed network transfer: '$DOWNLOADED_FILE_FULL_PATH' to '$final_destination_path_for_file'."
         transfer_failed=true
     else
         log_debug_event "YouTube" "Network file transfer successful (source file removal handled by rsync_with_network_retry)."
     fi
 else
-    # Local destination - use simple mv for the FILE
+    # Local destination - use mv with proper quoting
     log_user_progress "YouTube" "Transferring (local) '$final_local_filename' to '$final_destination_dir'..."
-    if mv "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file"; then
+    if mv -- "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file"; then
         log_debug_event "YouTube" "Local file transfer successful."
-        # 'mv' removes the source, so no explicit cleanup of DOWNLOADED_FILE_FULL_PATH needed here
     else
         transfer_failed=true
         log_error_event "YouTube" "Failed to move file locally: $DOWNLOADED_FILE_FULL_PATH -> $final_destination_path_for_file"

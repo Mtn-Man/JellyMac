@@ -312,8 +312,12 @@ extract_and_sanitize_movie_info() {
     # Use the lowercase version for subsequent processing, it will be title-cased later.
     local cleaned_name="$cleaned_name_lower"
     
+    # Remove domain name prefix (e.g., "www.site.com - " or "site.com - ")
+    # This handles both www. and non-www. domains, and accounts for various separators
+    cleaned_name=$(echo "$cleaned_name" | sed -E 's/^[[:space:]]*([wW][wW][wW]\.)?[^[:space:]]+\.[^[:space:]]+[[:space:]]*-*[[:space:]]*//')
+    log_debug_event "Media" "extract_and_sanitize_movie_info: After domain removal='$cleaned_name'"
+    
     # STEP 1: Check if year is already in parentheses (like "Thunderbolts (2025)")
-    # Note: Year extraction regex should work fine on lowercase 'cleaned_name'
     if [[ $cleaned_name =~ ^(.*[[:space:]])\(([12][0-9]{3})\)(.*)$ ]]; then
         local title_part="${BASH_REMATCH[1]}"
         local year="${BASH_REMATCH[2]}"

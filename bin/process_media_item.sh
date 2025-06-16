@@ -55,7 +55,7 @@ _cleanup_process_media_item_temp_files() {
         _cleanup_common_utils_temp_files
     fi
 }
-trap _cleanup_process_media_item_temp_files EXIT SIGINT SIGTERM
+trap 'release_stability_lock "$MAIN_ITEM_PATH"; _cleanup_process_media_item_temp_files' EXIT SIGINT SIGTERM
 
 # --- Global Variables ---
 # PROCESSOR_EXIT_CODE will be used to determine the final outcome.
@@ -90,6 +90,12 @@ fi
 if [[ ${#MAIN_MEDIA_EXTENSIONS[@]} -eq 0 ]]; then
     log_error_event "Processing" "MAIN_MEDIA_EXTENSIONS array is not defined or empty in config."
     exit 1
+fi
+
+# --- Acquire Lock for Media Item ---
+if ! acquire_stability_lock "$MAIN_ITEM_PATH"; then
+    log_warn_event "Processing" "Item '$(basename "$MAIN_ITEM_PATH")' is already being processed by another instance. Exiting."
+    exit 0  # Exit with success since this is an expected condition
 fi
 
 # --- Helper Functions ---

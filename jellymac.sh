@@ -13,7 +13,7 @@
 #
 # Author: Eli Sher (Mtn_Man)
 # Version: v0.2.4
-# Last Updated: 2025-06-15
+# Last Updated: 2025-06-16
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
@@ -964,7 +964,7 @@ _check_clipboard_youtube() {
                             fi
                         fi
                         
-                        sleep "${MAIN_LOOP_SLEEP_INTERVAL:-15}"
+                        sleep "${MAIN_LOOP_SLEEP_INTERVAL:-2}"
                     done
                 } &
                 local background_loop_pid=$!
@@ -974,7 +974,7 @@ _check_clipboard_youtube() {
                 _ACTIVE_YOUTUBE_PID=$!
 
                 if wait "$_ACTIVE_YOUTUBE_PID"; then
-                    log_user_info "JellyMac" "✅ YouTube download complete: '${trimmed_cb:0:60}...'"
+                    log_user_info "JellyMac" "✅ YouTube download complete"
                 else
                     log_warn_event "JellyMac" "❌ YouTube download failed: '${trimmed_cb:0:60}...'"
                     send_desktop_notification "JellyMac: YouTube Error" "Failed: ${trimmed_cb:0:60}..." "Basso"
@@ -1307,7 +1307,7 @@ fi
 # --- Log Configuration Summary ---
 log_user_info "JellyMac" ""
 log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.4) ---"
-log_user_info "JellyMac" "   Check Interval: ${MAIN_LOOP_SLEEP_INTERVAL:-15}s | Max Processors: ${MAX_CONCURRENT_PROCESSORS:-2}"
+log_user_info "JellyMac" "   Check Interval: ${MAIN_LOOP_SLEEP_INTERVAL:-2}s | Max Processors: ${MAX_CONCURRENT_PROCESSORS:-2}"
 log_user_info "JellyMac" ""
 log_user_info "JellyMac" "  Media Destinations:"
 log_user_info "JellyMac" "   Movies  → ${DEST_DIR_MOVIES:-N/A}"
@@ -1340,7 +1340,7 @@ if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
     check_and_resume_youtube_queue
 fi
 
-log_user_status "JellyMac" "🔄 JellyMac is ready! Watching for new links or media every ${MAIN_LOOP_SLEEP_INTERVAL:-15} seconds..."
+log_user_status "JellyMac" "🔄 JellyMac is ready! Watching for new links or media every ${MAIN_LOOP_SLEEP_INTERVAL:-2} seconds..."
 log_user_status "JellyMac" "(Press Ctrl+C to exit any time)"
 while true; do
     manage_active_processors    
@@ -1360,6 +1360,6 @@ while true; do
     fi
     process_drop_folder         
     
-    sleep "${MAIN_LOOP_SLEEP_INTERVAL:-15}"
+    sleep "${MAIN_LOOP_SLEEP_INTERVAL:-2}"
 done
 exit 0

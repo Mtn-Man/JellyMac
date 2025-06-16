@@ -49,7 +49,6 @@ _add_youtube_to_queue() {
     queue_count=$(wc -l < "$queue_file" 2>/dev/null || echo "0")
     
     log_user_info "JellyMac" "📋 YouTube URL queued (#$queue_count): '${youtube_url:0:60}...'"
-    send_desktop_notification "JellyMac: YouTube Queued" "Position #$queue_count: ${youtube_url:0:50}..."
     
     # 🔊 Play input detected sound for queued items
     play_sound_notification "input_detected" "JellyMac"
@@ -107,7 +106,6 @@ _process_youtube_queue() {
             local wait_exit_code=$?
             if [[ "$wait_exit_code" -eq 0 ]]; then
                 log_user_info "JellyMac" "✅ Queued download complete ($processed_count/$total_count): '${queued_url:0:60}...'"
-                send_desktop_notification "JellyMac: YouTube Complete" "Queued #$processed_count: ${queued_url:0:50}..."
             elif [[ "$wait_exit_code" -eq 130 ]]; then
                 # Interrupted (SIGINT)
                 ((interrupted_count++))
@@ -118,7 +116,6 @@ _process_youtube_queue() {
                 # Other failure
                 ((failed_count++))
                 log_warn_event "JellyMac" "❌ Queued download failed ($processed_count/$total_count): '${queued_url:0:60}...'"
-                send_desktop_notification "JellyMac: YouTube Error" "Failed #$processed_count: ${queued_url:0:50}..." "Basso"
                 # Re-add failed URL to queue for retry on next startup
                 echo "$queued_url" >> "$queue_file"
             fi
@@ -139,7 +136,7 @@ _process_youtube_queue() {
     local success_count=$((processed_count - failed_count - interrupted_count))
     
     if [[ "$failed_count" -eq 0 && "$interrupted_count" -eq 0 ]]; then
-        log_user_info "JellyMac" "📋 Queue processing complete! Successfully processed all $processed_count downloads."
+        log_user_info "JellyMac" "📋 Queue processing complete! Successfully processed all downloads."
     else
         local requeued_count=$((failed_count + interrupted_count))
         log_user_info "JellyMac" "📋 Queue processing complete! $success_count successful, $failed_count failed, $interrupted_count interrupted."
