@@ -6,7 +6,7 @@ lib/jellymac_config.example.sh.bak
 # Ignore log files and directory
 logs/
 *.log
-
+_incomplete_torrents/
 # Ignore state directory and its contents
 .state/
 
@@ -22,6 +22,6 @@ logs/
 .yt_download_archive.txt.bak
 .magnet_download_archive.txt
 .magnet_download_archive.txt.bak
-lib/organizer_utils.sh
+lib/scanning_utils.sh
 story.txt
 jellymac_installer.sh

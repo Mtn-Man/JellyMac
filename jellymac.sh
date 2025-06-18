@@ -487,7 +487,7 @@ graceful_shutdown_and_cleanup() {
     # shellcheck disable=SC2317
     log_user_shutdown "JellyMac" "Exiting JellyMac..." 
 
-    # NEW: Handle interrupted YouTube downloads
+    # Handle interrupted YouTube downloads
     # shellcheck disable=SC2317
     if [[ -n "$_ACTIVE_YOUTUBE_URL" && -n "$_ACTIVE_YOUTUBE_PID" ]]; then
         log_user_info "JellyMac" "🔄 Handling interrupted YouTube download..."
@@ -1092,6 +1092,9 @@ process_drop_folder() {
     
     find "$DROP_FOLDER" -mindepth 1 -maxdepth 1 \( -type f -o -type d \) -print0 > "$find_results_file"
     
+    # Clean up completed processes BEFORE checking for new items
+    manage_active_processors 
+    
     while IFS= read -r -d $'\0' item_path; do
         [[ -z "$item_path" ]] && continue 
 
@@ -1113,8 +1116,6 @@ process_drop_folder() {
             log_debug_event "JellyMac" "Item '$item_basename' (DROP_FOLDER) not stable. Will re-check next cycle."; continue
         fi
         log_user_info "JellyMac" "✅ Item '$item_basename' (DROP_FOLDER) is stable."
-
-        manage_active_processors 
 
         local old_ifs="$IFS"; IFS='|'
         set -f 

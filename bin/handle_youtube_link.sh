@@ -60,10 +60,6 @@ source "${LIB_DIR}/common_utils.sh"
 # shellcheck disable=SC1091
 source "${LIB_DIR}/jellyfin_utils.sh" 
 
-# Set script log level from global configuration
-# shellcheck disable=SC2034  # Variable used by logging functions in sourced files
-# SCRIPT_CURRENT_LOG_LEVEL=${JELLYMAC_LOG_LEVEL:-$LOG_LEVEL_INFO} # Commented out: SCRIPT_CURRENT_LOG_LEVEL is now inherited from jellymac.sh
-# The SCRIPT_CURRENT_LOG_LEVEL (and _log_to_current_file function) will be inherited from the parent (jellymac.sh)
 
 #==============================================================================
 # ARGUMENT VALIDATION AND SETUP
@@ -325,7 +321,7 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
                 log_warn_event "YouTube" "   Possible workarounds:"
                 log_warn_event "YouTube" "   1. Try again later - YouTube sometimes rotates video delivery methods"
                 log_warn_event "YouTube" "   2. Try an alternative URL for this video (e.g., mobile or YouTube Music URL)"
-                log_warn_event "YouTube" "   3. Upgrade yt-dlp when a new version becomes available: 'yt-dlp -U'"
+                log_warn_event "YouTube" "   3. Upgrade yt-dlp: brew upgrade yt-dlp"
                 log_warn_event "YouTube" ""
                 log_warn_event "YouTube" "   This is a known limitation with YouTube's new streaming format and not a JellyMac issue."
                 log_warn_event "YouTube" "   For more details see: https://github.com/yt-dlp/yt-dlp/issues/12482"
@@ -465,7 +461,7 @@ else
     final_local_full_path="$DOWNLOADED_FILE_FULL_PATH"
 fi
 
-log_user_success "YouTube" "✅ Confirmed media file: '${final_local_filename//\'/\'\\\'\'}'"
+log_user_info "YouTube" "✅ Confirmed media file: '${final_local_filename//\'/\'\\\'\'}'"
 
 #==============================================================================
 # FINAL TRANSFER TO DESTINATION
@@ -523,24 +519,11 @@ fi
 
 # Transfer the single video file
 transfer_failed=false
-if [[ "$final_destination_dir" == /Volumes/* ]]; then
-    # Network destination - use rsync with proper quoting
-    log_user_progress "YouTube" "Transferring (network) '$final_local_filename' to '$final_destination_dir'..."
-    if ! rsync_with_network_retry -- "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file" "-a --progress --remove-source-files"; then
-        log_error_event "YouTube" "Failed network transfer: '$DOWNLOADED_FILE_FULL_PATH' to '$final_destination_path_for_file'."
-        transfer_failed=true
-    else
-        log_debug_event "YouTube" "Network file transfer successful (source file removal handled by rsync_with_network_retry)."
-    fi
+if transfer_file_smart "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file" "YouTube"; then
+    log_debug_event "YouTube" "File transfer successful."
 else
-    # Local destination - use mv with proper quoting
-    log_user_progress "YouTube" "Transferring (local) '$final_local_filename' to '$final_destination_dir'..."
-    if mv -- "$DOWNLOADED_FILE_FULL_PATH" "$final_destination_path_for_file"; then
-        log_debug_event "YouTube" "Local file transfer successful."
-    else
-        transfer_failed=true
-        log_error_event "YouTube" "Failed to move file locally: $DOWNLOADED_FILE_FULL_PATH -> $final_destination_path_for_file"
-    fi
+    transfer_failed=true
+    log_error_event "YouTube" "File transfer failed: $DOWNLOADED_FILE_FULL_PATH -> $final_destination_path_for_file"
 fi
 
 # Handle transfer failure (if it occurred)

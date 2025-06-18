@@ -52,11 +52,11 @@ JELLYMAC_PROJECT_ROOT="$(cd "${CONFIG_FILE_OWN_DIR}/.." && pwd)"
 # === CORE SYSTEM SETTINGS ===
 LOG_DIR="${JELLYMAC_PROJECT_ROOT}/logs"
 AUTO_INSTALL_DEPENDENCIES="false"
-MAIN_LOOP_SLEEP_INTERVAL=2                               # Seconds between input checks
+MAIN_LOOP_SLEEP_INTERVAL=2                              # Seconds between input checks
 AUTO_CREATE_MISSING_DIRS="true"
-MAX_CONCURRENT_PROCESSORS="2"  
+MAX_CONCURRENT_PROCESSORS="2"                           # Maximum number of concurrent media processors (1-4 recoommended for most systems)    
 ERROR_DIR="${JELLYMAC_PROJECT_ROOT}/_error_quarantine_files"
-STATE_DIR="${JELLYMAC_PROJECT_ROOT}/.state"                          # Maximum number of concurrent media processors (1-4 recoommended for most systems)
+STATE_DIR="${JELLYMAC_PROJECT_ROOT}/.state"            
 
 #==============================================================================
 # USER INTERFACE
@@ -99,7 +99,6 @@ YTDLP_OPTS=(
     --merge-output-format mp4        # Combine video/audio into .mp4 container
     --embed-metadata                 # Include video title, description in file
     --embed-thumbnail                # Embed video thumbnail as cover art
-    --restrict-filenames             # Use only safe characters in filenames
  #  --sponsorblock-remove all        # Remove sponsored segments automatically; this sometimes fails, so use with caution
  #  --write-subs                     # Download subtitles if available (creates separate .srt or .vtt files)
  #  --sub-langs "en.*,en,es"         # Preferred subtitle languages (e.g., all English variants, then Spanish)

@@ -359,7 +359,7 @@ validate_config_filepaths() {
     local log_prefix="Doctor"
     log_debug_event "$log_prefix" "🔍 Validating configuration filepaths, this may take a moment..."
     local validation_failed=false
-    local first_run_setup=false
+    local first_run_setup=false # Renamed from IS_FIRST_RUN to be local to this function's scope
     
     # --- Required Directories ---
     # These must exist for the system to function
@@ -368,7 +368,69 @@ validate_config_filepaths() {
         "$DEST_DIR_MOVIES"          "Destination folder for movies"
         "$DEST_DIR_SHOWS"           "Destination folder for TV shows"
         "$ERROR_DIR"                "Error/quarantine folder for problematic files"
+        # STATE_DIR is checked separately as it's crucial for script operation itself
     )
+
+    # Add Transmission incomplete sub-directory within JELLYMAC_PROJECT_ROOT if torrent automation is enabled
+    # This directory will be created if it doesn't exist.
+    if [[ "${ENABLE_TORRENT_AUTOMATION:-false}" == "true" ]]; then
+        # Ensure JELLYMAC_PROJECT_ROOT is set (should be exported by main script)
+        if [[ -z "$JELLYMAC_PROJECT_ROOT" ]]; then
+            log_fatal_event "$log_prefix" "JELLYMAC_PROJECT_ROOT is not set. Cannot determine path for incomplete torrents."
+            # This is a critical internal error, main script should handle JELLYMAC_PROJECT_ROOT
+            # For safety, mark validation as failed.
+            validation_failed=true
+        else
+            local project_incomplete_dir="${JELLYMAC_PROJECT_ROOT}/_incomplete_torrents"
+            if [[ ! -d "$project_incomplete_dir" ]]; then
+                if [[ "${AUTO_CREATE_MISSING_DIRS:-false}" == "true" ]]; then
+                    log_user_info "$log_prefix" "Creating Transmission incomplete directory: $project_incomplete_dir"
+                    if ! mkdir -p "$project_incomplete_dir"; then
+                        log_error_event "$log_prefix" "❌ Failed to create Transmission incomplete directory: $project_incomplete_dir"
+                        log_error_event "$log_prefix" "Please check permissions or create it manually."
+                        validation_failed=true
+                    else
+                        log_user_info "$log_prefix" "✅ Created Transmission incomplete directory: $project_incomplete_dir"
+                    fi
+                else
+                    log_warn_event "$log_prefix" "⚠️ Transmission incomplete directory does not exist: $project_incomplete_dir"
+                    log_warn_event "$log_prefix" "   Enable AUTO_CREATE_MISSING_DIRS in config or create it manually."
+                    # For first run, offer to create it
+                    # IS_FIRST_RUN is a global variable set by jellymac.sh
+                    if [[ "${IS_FIRST_RUN:-false}" == "true" ]] && [[ "${AUTO_INSTALL_DEPENDENCIES:-false}" != "true" ]]; then # Avoid double prompt if auto-install is on
+                        echo
+                        echo -e "\\033[1mThe Transmission incomplete directory is missing:\\033[0m"
+                        echo -e "  \\033[36m$project_incomplete_dir\\033[0m"
+                        echo
+                        local create_response
+                        read -r -p "Create this directory now? (Y/n, default: Y): " create_response
+                        local normalized_create_response
+                        normalized_create_response=$(normalize_user_response "$create_response")
+
+                        if [[ "$normalized_create_response" == "yes" ]]; then
+                            log_user_info "$log_prefix" "Creating Transmission incomplete directory: $project_incomplete_dir"
+                            if ! mkdir -p "$project_incomplete_dir"; then
+                                log_error_event "$log_prefix" "❌ Failed to create Transmission incomplete directory: $project_incomplete_dir"
+                                validation_failed=true
+                            else
+                                log_user_info "$log_prefix" "✅ Created Transmission incomplete directory: $project_incomplete_dir"
+                            fi
+                        else
+                            log_warn_event "$log_prefix" "User declined to create Transmission incomplete directory. Torrent automation may fail."
+                            validation_failed=true # Treat as failure if user declines essential dir creation
+                        fi
+                    elif [[ "${IS_FIRST_RUN:-false}" != "true" ]]; then # Not first run, and auto-create is off
+                         validation_failed=true
+                    fi
+                fi
+            elif [[ ! -w "$project_incomplete_dir" ]]; then
+                log_error_event "$log_prefix" "❌ Transmission incomplete directory is not writable: $project_incomplete_dir"
+                validation_failed=true
+            else
+                log_debug_event "$log_prefix" "✅ Transmission incomplete directory exists and is writable: $project_incomplete_dir"
+            fi
+        fi
+    fi
     
     # --- Optional Directories ---
     # These can be empty or missing, but if specified must be valid
@@ -561,12 +623,14 @@ check_transmission_daemon() {
 # Side Effects: May start Transmission service
 offer_transmission_service_enablement() {
     local log_prefix="Doctor"
+    # JELLYMAC_PROJECT_ROOT should be set and exported by the main script
+    local project_incomplete_dir_display="${JELLYMAC_PROJECT_ROOT:-./}/_incomplete_torrents" # For display
     
     echo
-    echo -e "\033[33m⚠️  Transmission background service is not running\033[0m"
+    echo -e "\\033[33m⚠️  Transmission background service is not running\\033[0m"
     echo "Magnet link handling requires the Transmission background service to be active."
     echo
-    echo -e "\033[1mWould you like to enable Transmission as a background service?\033[0m"
+    echo -e "\\033[1mWould you like to enable Transmission as a background service?\\033[0m"
     echo "This will allow Transmission to start automatically on login."
     echo
     
@@ -602,9 +666,13 @@ offer_transmission_service_enablement() {
                     
                     # NEW: Offer automatic configuration
                     echo
-                    echo -e "\033[1m🎯 Complete Full Automation Setup\033[0m"
-                    echo "Configure Transmission to download directly to your drop folder?"
-                    echo -e "This will set: \033[36m$DROP_FOLDER\033[0m"
+                    echo -e "\\033[1m🎯 Complete Full Automation Setup\\033[0m"
+                    echo "Configure Transmission to use a temporary download folder and move"
+                    echo "completed torrents to your JellyMac drop folder?"
+                    echo
+                    echo "This will set Transmission to:"
+                    echo -e "  1. Download to temporary folder: \\033[36m${project_incomplete_dir_display}\\033[0m"
+                    echo -e "  2. Move completed torrents to: \\033[36m$DROP_FOLDER\\033[0m"
                     echo
                     echo "This enables the complete automation chain:"
                     echo "  📋 Copy magnet link → 🌐 Transmission downloads → 📁 JellyMac organizes → 📺 Library updated"
@@ -612,27 +680,27 @@ offer_transmission_service_enablement() {
                     
                     # Get user input with flexible handling
                     local config_response
-                    read -r -p "Auto-configure download location? (Y/n): " config_response
+                    read -r -p "Auto-configure Transmission paths? (Y/n): " config_response
                     
-                    local normalized_response
-                    normalized_response=$(normalize_user_response "$config_response")
+                    local normalized_config_response # Use a different variable name
+                    normalized_config_response=$(normalize_user_response "$config_response")
                     
-                    case "$normalized_response" in
+                    case "$normalized_config_response" in # Use the new variable name
                         "yes")
-                            log_user_info "$log_prefix" "🔧 Configuring Transmission download location..."
+                            log_user_info "$log_prefix" "🔧 Configuring Transmission paths..."
                             
-                            if configure_transmission_download_dir "$DROP_FOLDER"; then
+                            if configure_transmission_download_paths; then # Ensure this function name is correct
                                 echo
-                                echo -e "\033[32m🎉 Perfect! Full automation is now enabled!\033[0m"
-                                echo -e "\033[32m✓\033[0m Transmission will download to: $DROP_FOLDER"
-                                echo -e "\033[32m✓\033[0m JellyMac will automatically process completed downloads"
-                                echo -e "\033[32m✓\033[0m Your media library will be updated automatically"
+                                echo -e "\\033[32m🎉 Perfect! Full automation is now enabled!\\033[0m"
+                                echo -e "\\033[32m✓\\033[0m Transmission will download to: ${project_incomplete_dir_display}"
+                                echo -e "\\033[32m✓\\033[0m Completed torrents moved to: $DROP_FOLDER"
+                                echo -e "\\033[32m✓\\033[0m Your media library will be updated automatically"
                                 echo
                                 echo "🚀 You can now copy magnet links and watch the magic happen!"
                                 echo "   The Transmission web interface is available at: http://${transmission_host}"
                             else
                                 echo
-                                echo -e "\033[33m⚠️  Auto-configuration failed. Let's set it up manually:\033[0m"
+                                echo -e "\\033[33m⚠️  Auto-configuration failed. Let's set it up manually:\\033[0m"
                                 # Fall back to manual instructions
                                 provide_manual_transmission_setup
                             fi
@@ -647,20 +715,20 @@ offer_transmission_service_enablement() {
                             
                         "invalid")
                             log_user_info "$log_prefix" "Invalid response. Defaulting to 'yes' (recommended)."
-                            log_user_info "$log_prefix" "🔧 Configuring Transmission download location..."
+                            log_user_info "$log_prefix" "🔧 Configuring Transmission paths..."
                             
-                            if configure_transmission_download_dir "$DROP_FOLDER"; then
+                            if configure_transmission_download_paths; then # Ensure this function name is correct
                                 echo
-                                echo -e "\033[32m🎉 Perfect! Full automation is now enabled!\033[0m"
-                                echo -e "\033[32m✓\033[0m Transmission will download to: $DROP_FOLDER"
-                                echo -e "\033[32m✓\033[0m JellyMac will automatically process completed downloads"
-                                echo -e "\033[32m✓\033[0m Your media library will be updated automatically"
+                                echo -e "\\033[32m🎉 Perfect! Full automation is now enabled!\\033[0m"
+                                echo -e "\\033[32m✓\\033[0m Transmission will download to: ${project_incomplete_dir_display}"
+                                echo -e "\\033[32m✓\\033[0m Completed torrents moved to: $DROP_FOLDER"
+                                echo -e "\\033[32m✓\\033[0m Your media library will be updated automatically"
                                 echo
                                 echo "🚀 You can now copy magnet links and watch the magic happen!"
                                 echo "   The Transmission web interface is available at: http://${transmission_host}"
                             else
                                 echo
-                                echo -e "\033[33m⚠️  Auto-configuration failed. Let's set it up manually:\033[0m"
+                                echo -e "\\033[33m⚠️  Auto-configuration failed. Let's set it up manually:\\033[0m"
                                 # Fall back to manual instructions
                                 provide_manual_transmission_setup
                             fi
@@ -697,34 +765,80 @@ offer_transmission_service_enablement() {
     esac
 }
 
-# Function: configure_transmission_download_dir
-# Description: Configures Transmission download directory via API
-# Parameters:
-#   $1: target_dir - The directory path to set as download location
+
+# Function: configure_transmission_download_paths
+# Description: Configures Transmission download directory, incomplete directory, and enables it.
+# Parameters: None (relies on global config var: DROP_FOLDER and JELLYMAC_PROJECT_ROOT)
 # Returns:
 #   0 if configuration succeeded
 #   1 if configuration failed
-configure_transmission_download_dir() {
-    local target_dir="$1"
+configure_transmission_download_paths() {
     local log_prefix="Doctor"
     
-    log_debug_event "$log_prefix" "🔧 Configuring Transmission download location to: $target_dir"
+    if [[ -z "$JELLYMAC_PROJECT_ROOT" ]]; then
+        log_fatal_event "$log_prefix" "JELLYMAC_PROJECT_ROOT is not set. Cannot configure Transmission paths."
+        return 1
+    fi
+    local incomplete_dir_path="${JELLYMAC_PROJECT_ROOT}/_incomplete_torrents"
+    local completed_dir="$DROP_FOLDER"
+
+    # Ensure the project-based incomplete directory exists
+    if [[ ! -d "$incomplete_dir_path" ]]; then
+        log_user_info "$log_prefix" "Creating Transmission incomplete directory: $incomplete_dir_path"
+        if ! mkdir -p "$incomplete_dir_path"; then
+            log_error_event "$log_prefix" "❌ Failed to create Transmission incomplete directory: $incomplete_dir_path. Please check permissions."
+            return 1
+        fi
+    fi
+
+    log_debug_event "$log_prefix" "🔧 Configuring Transmission paths:"
+    log_debug_event "$log_prefix" "   Incomplete Dir Enabled: true"
+    log_debug_event "$log_prefix" "   Incomplete Dir Path: $incomplete_dir_path"
+    log_debug_event "$log_prefix" "   Completed Dir Path (Download Dir): $completed_dir"
     
     # Build transmission-remote command using existing config variables
     local transmission_cli="${TORRENT_CLIENT_CLI_PATH:-transmission-remote}"
     local transmission_host="${TRANSMISSION_REMOTE_HOST:-localhost:9091}"
     
-    # Build command arguments array
-    declare -a cmd_args=("$transmission_host")
-    [[ -n "$TRANSMISSION_REMOTE_AUTH" ]] && cmd_args+=("--auth" "$TRANSMISSION_REMOTE_AUTH")
-    cmd_args+=("--download-dir" "$target_dir")
+    # Base command arguments array
+    declare -a cmd_args_base=("$transmission_host")
+    [[ -n "$TRANSMISSION_REMOTE_AUTH" ]] && cmd_args_base+=("--auth" "$TRANSMISSION_REMOTE_AUTH")
+
+    local success=true
+
+    # 1. Enable incomplete directory
+    if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled --boolean true >/dev/null 2>&1; then
+        log_error_event "$log_prefix" "❌ Failed to enable Transmission incomplete directory feature."
+        success=false
+    else
+        log_debug_event "$log_prefix" "✅ Enabled Transmission incomplete directory feature."
+    fi
+
+    # 2. Set incomplete directory path
+    if [[ "$success" == "true" ]]; then
+        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" >/dev/null 2>&1; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission incomplete directory to: $incomplete_dir_path"
+            success=false
+        else
+            log_debug_event "$log_prefix" "✅ Set Transmission incomplete directory to: $incomplete_dir_path"
+        fi
+    fi
+
+    # 3. Set download directory (completed directory)
+    if [[ "$success" == "true" ]]; then
+        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" >/dev/null 2>&1; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission download (completed) directory to: $completed_dir"
+            success=false
+        else
+            log_debug_event "$log_prefix" "✅ Set Transmission download (completed) directory to: $completed_dir"
+        fi
+    fi
     
-    # Execute the configuration command
-    if "$transmission_cli" "${cmd_args[@]}" >/dev/null 2>&1; then
-        log_debug_event "$log_prefix" "✅ Successfully configured Transmission download directory"
+    if [[ "$success" == "true" ]]; then
+        log_debug_event "$log_prefix" "✅ Successfully configured all Transmission paths."
         return 0
     else
-        log_debug_event "$log_prefix" "❌ Failed to configure Transmission download directory"
+        log_error_event "$log_prefix" "❌ Failed to configure all Transmission paths."
         return 1
     fi
 }
@@ -736,15 +850,19 @@ configure_transmission_download_dir() {
 provide_manual_transmission_setup() {
     local log_prefix="Doctor"
     local web_portal_url="http://${TRANSMISSION_REMOTE_HOST:-localhost:9091}"
+    # JELLYMAC_PROJECT_ROOT should be set and exported by the main script
+    local project_incomplete_dir_manual="${JELLYMAC_PROJECT_ROOT:-./}/_incomplete_torrents" # For display
     
     echo
-    log_user_info "$log_prefix" "⚙️ Manual Transmission Configuration:"
+    log_user_info "$log_prefix" "⚙️ Manual Transmission Configuration for Full Automation:"
     log_user_info "$log_prefix" "   1. Open Transmission: ${web_portal_url}"
-    log_user_info "$log_prefix" "   2. Click the hamburger menu (≡) at the top right"
-    log_user_info "$log_prefix" "   3. Select 'Edit Preferences' from the menu"
-    log_user_info "$log_prefix" "   4. In the Downloads section, set Download location to:"
-    log_user_info "$log_prefix" "      ${DROP_FOLDER}"
-    log_user_info "$log_prefix" "   5. Save and close - you're all set!"
+    log_user_info "$log_prefix" "   2. Click the hamburger menu (≡) at the top right, then 'Edit Preferences'."
+    log_user_info "$log_prefix" "   3. Go to the 'Downloads' tab."
+    log_user_info "$log_prefix" "   4. Check 'Keep incomplete torrents in:'"
+    log_user_info "$log_prefix" "      Set path to: ${project_incomplete_dir_manual}"
+    log_user_info "$log_prefix" "   5. Set 'Download to:' (this is where completed torrents go)"
+    log_user_info "$log_prefix" "      Set path to: ${DROP_FOLDER}"
+    log_user_info "$log_prefix" "   6. Save and close - you're all set!"
     echo
     log_user_info "$log_prefix" "Once configured, magnet links will be fully automated."
 }
