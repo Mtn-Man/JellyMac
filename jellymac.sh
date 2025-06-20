@@ -514,23 +514,19 @@ graceful_shutdown_and_cleanup() {
     #shellcheck disable=SC2317
     processor_string_modified="${_ACTIVE_PROCESSOR_INFO_STRING//|||/|}"
     # shellcheck disable=SC2317
-    local p_info_array=() # Initialize for Bash 3.2
-    # shellcheck disable=SC2317
-    # Replace: read -ra p_info_array <<< "$processor_string_modified"
-    # shellcheck disable=SC2317
     local old_ifs_gsac="$IFS" # Store original IFS
     # shellcheck disable=SC2317
     IFS='|'                   # Set IFS to the delimiter
     # shellcheck disable=SC2317
     set -f                    # Disable globbing
-    # shellcheck disable=SC2162,SC2317
-    read -r -a p_info_array <<< "$processor_string_modified" # Use read -r -a
+    # shellcheck disable=SC2162,SC2317,SC2086
+    set -- $processor_string_modified # Bash 3.2 compatible: use set -- instead of read -r -a (intentional word splitting)
+    # shellcheck disable=SC2317
+    p_info_array=("$@")       # Copy positional parameters to array
     # shellcheck disable=SC2317
     set +f                    # Re-enable globbing
     # shellcheck disable=SC2317
     IFS="$old_ifs_gsac"       # Restore original IFS
-    # shellcheck disable=SC2317
-    set +f 
     # shellcheck disable=SC2317
     IFS="$old_ifs"
     # shellcheck disable=SC2317
@@ -595,7 +591,9 @@ manage_active_processors() {
     local old_ifs_map="$IFS"
     IFS='|'
     set -f
-    read -r -a p_info_array <<< "$processor_string_modified"  # Use read -r -a for Bash 3.2
+    # shellcheck disable=SC2086
+    set -- $processor_string_modified # Bash 3.2 compatible: use set -- instead of read -r -a (intentional word splitting)
+    p_info_array=("$@") # Copy positional parameters to array
     set +f
     IFS="$old_ifs_map"
     set +f 
@@ -666,11 +664,12 @@ is_item_being_processed() {
     local processor_string_modified
     processor_string_modified="${_ACTIVE_PROCESSOR_INFO_STRING//|||/|}"
     local p_info_array=() # Initialize for Bash 3.2
-    # Replace: read -ra p_info_array <<< "$processor_string_modified"
     local old_ifs_iibp="$IFS"
     IFS='|'
     set -f
-    read -r -a p_info_array <<< "$processor_string_modified"
+    # shellcheck disable=SC2086
+    set -- $processor_string_modified # Bash 3.2 compatible: use set -- instead of read -r -a (intentional word splitting)
+    p_info_array=("$@") # Copy positional parameters to array
     set +f
     IFS="$old_ifs_iibp"
     set +f 
@@ -1123,11 +1122,12 @@ process_drop_folder() {
         local processor_string_modified
         processor_string_modified="${_ACTIVE_PROCESSOR_INFO_STRING//|||/|}"
         local p_array_temp=() # Initialize for Bash 3.2
-        # Replace: read -ra p_array_temp <<< "$processor_string_modified"
         local old_ifs_pdf="$IFS"
         IFS='|'
         set -f
-        read -r -a p_array_temp <<< "$processor_string_modified"
+        # shellcheck disable=SC2086
+        set -- $processor_string_modified # Bash 3.2 compatible: use set -- instead of read -r -a (intentional word splitting)
+        p_array_temp=("$@") # Copy positional parameters to array
         set +f
         IFS="$old_ifs_pdf"
         set +f 
