@@ -13,7 +13,7 @@
 #
 # Author: Eli Sher (Mtn_Man)
 # Version: v0.2.4
-# Last Updated: 2025-06-15
+# Last Updated: 2025-06-19
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
@@ -61,7 +61,8 @@ if [[ ! -f "$CONFIG_PATH" ]]; then
         echo "It looks like you haven't set up your configuration file yet."
         echo ""
         echo "Would you like to create a config file with default settings?"
-        echo "This will copy: jellymac_config.example.sh → jellymac_config.sh"
+        echo "This will copy the contents of jellymac_config.example.sh → jellymac_config.sh"
+        echo "After this, jellymac_config.sh will be your main configuration file."
         echo ""
         
         read -r -p "Create default config? (Y/n): " response
@@ -179,17 +180,14 @@ export LOG_RETENTION_DAYS
 source "${SCRIPT_DIR}/lib/common_utils.sh"
 
 # 5. Doctor Utilities (Health Checks)
-# shellcheck source=lib/doctor_utils.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/doctor_utils.sh"
 
 # 6. Media Utilities (for determine_media_category by watcher if needed)
-# shellcheck source=lib/media_utils.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/media_utils.sh"
 
 # 7. YouTube Utilities (for YouTube queue management)
-# shellcheck source=lib/youtube_utils.sh
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/youtube_utils.sh"
 
@@ -339,11 +337,6 @@ _log_to_current_file() {
 }
 export -f _log_to_current_file
 
-# Define local log function for jellymac.sh using the modern emoji-based system
-# shellcheck disable=SC2317
-log_debug() { log_debug_event "JellyMac" "$1"; }
-
-
 # --- Single Instance Lock ---
 LOCK_FILE="${STATE_DIR}/jellymac.sh.lock"
 _acquire_lock() {
@@ -486,18 +479,15 @@ graceful_shutdown_and_cleanup() {
     echo 
     # shellcheck disable=SC2317
     log_user_shutdown "JellyMac" "Exiting JellyMac..." 
-
-    # NEW: Handle interrupted YouTube downloads
+    # Handle interrupted YouTube downloads
     # shellcheck disable=SC2317
     if [[ -n "$_ACTIVE_YOUTUBE_URL" && -n "$_ACTIVE_YOUTUBE_PID" ]]; then
         log_user_info "JellyMac" "🔄 Handling interrupted YouTube download..."
         _handle_interrupted_youtube_download
     fi
-    
     # Stop caffeinate if running
     # shellcheck disable=SC2317
     _stop_caffeinate_if_running
-    
     #shellcheck disable=SC2317
     log_debug_event "JellyMac" "Cleaning up any active child processes..."
     #shellcheck disable=SC2317
@@ -601,7 +591,7 @@ manage_active_processors() {
     set +f 
     IFS="$old_ifs"
     
-    # Get array length in Bash 3.2 compatible way
+    # Get array length (Bash 3.2 compatible)
     local entry_count=0
     for _ in "${p_info_array[@]}"; do
         entry_count=$((entry_count + 1))
@@ -627,7 +617,7 @@ manage_active_processors() {
         script_basename=$(basename "$script_full_path")
 
         if ps -p "$pid" > /dev/null; then 
-            # Bash 3.2 compatible string concatenation
+            # string concatenation (Bash 3.2 compatible)
             if [[ -n "$still_running_string" ]]; then 
                 still_running_string="${still_running_string}|||"
             fi 
@@ -1198,7 +1188,6 @@ show_startup_banner() {
 }
 
 # --- Main Initialization & Startup ---
-
 # Perform System Health Checks
 health_status=0
 perform_system_health_checks || health_status=$? # from doctor_utils.sh
@@ -1210,12 +1199,9 @@ elif [[ "$health_status" -eq 2 ]]; then # Optional checks failed
     log_warn_event "JellyMac" "Optional system health checks failed. Some features may be degraded or unavailable. Continuing."
 fi
 # If we reach here, all critical executables are present and critical paths were validated by doctor_utils.sh.
-
 # Acquire Single Instance Lock (AFTER health checks)
 _acquire_lock  # Ensure only one instance of JellyMac runs at a time
-
 show_startup_banner  # Call the startup banner function if enabled
-
 log_user_info "JellyMac" "🚀 JellyMac Starting..."
 log_user_info "JellyMac" "Version: v0.2.4 ($(date +%Y-%m-%d))"
 log_user_info "JellyMac" "JellyMac location: $JELLYMAC_PROJECT_ROOT"
@@ -1226,12 +1212,10 @@ if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" && -n "$CURRENT_LOG_FILE_PATH" 
 else
     log_user_info "JellyMac" "   File Logging: Disabled or not configured. Logging to console only."
 fi
-
 # STATE_DIR creation is handled by _acquire_lock if needed.
 if [[ -d "$STATE_DIR" ]]; then
     log_debug_event "JellyMac" "✅ State directory OK: $STATE_DIR"
 fi
-
 log_debug_event "JellyMac" "Verifying feature-specific directory configurations..."
 
 # doctor_utils.sh::validate_config_filepaths has already performed comprehensive checks for:
@@ -1264,7 +1248,6 @@ if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
         log_debug_event "JellyMac" "✅ DEST_DIR_YOUTUBE ('$DEST_DIR_YOUTUBE') is configured for YouTube features (accessibility checked by doctor_utils.sh)."
     fi
 fi
-
 # Check LOG_DIR: Critical if file logging is enabled.
 if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" ]]; then
     if [[ -z "${LOG_DIR:-}" ]]; then
@@ -1273,10 +1256,8 @@ if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" ]]; then
         log_debug_event "JellyMac" "✅ LOG_DIR ('$LOG_DIR') is configured for rotated logs (creation/writability handled by logging system)."
     fi
 fi
-
 log_user_info "JellyMac" "✅ Feature-specific directory configuration checks complete."
 log_user_info "JellyMac" "✅ Core directory configurations validated."
-
 log_debug_event "JellyMac" "Verifying program files are executable..."
 for helper_script_path in "$HANDLE_YOUTUBE_SCRIPT" "$HANDLE_MAGNET_SCRIPT" "$PROCESS_MEDIA_ITEM_SCRIPT"; do
     if [[ ! -x "$helper_script_path" ]]; then
@@ -1284,9 +1265,7 @@ for helper_script_path in "$HANDLE_YOUTUBE_SCRIPT" "$HANDLE_MAGNET_SCRIPT" "$PRO
         exit 1
     fi
 done; log_user_info "JellyMac" "✅ All essential program files ready to go."
-
 log_user_info "JellyMac" "✅ All critical checks passed and filepaths validated."
-
 if [[ -n "$HISTORY_FILE" ]]; then
     if [[ ! -f "$HISTORY_FILE" ]]; then log_user_info "JellyMac" "📝 History file '$HISTORY_FILE' will be created on first use.";
     else log_debug_event "JellyMac" "📝 Using history file: $HISTORY_FILE"; fi
@@ -1298,7 +1277,6 @@ PBPASTE_CMD=""
 if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" || "${ENABLE_CLIPBOARD_MAGNET:-false}" == "true" ]]; then
     PBPASTE_CMD="pbpaste" # Assumed available by doctor_utils.sh
 fi
-
 CAFFEINATE_CMD_PATH=""
 if [[ "$(uname)" == "Darwin" ]]; then
     CAFFEINATE_CMD_PATH="caffeinate" # Assumed available by doctor_utils.sh
@@ -1324,7 +1302,6 @@ if [[ -n "${JELLYFIN_SERVER:-}" && -n "${JELLYFIN_API_KEY:-}" ]]; then
 else
     log_user_info "JellyMac" "🪼 Jellyfin: Auto-Sync not configured"
 fi
-
 log_user_info "JellyMac" "🔔 Notifications:${ENABLE_DESKTOP_NOTIFICATIONS:-false} | Sounds:${SOUND_NOTIFICATION:-false}"
 log_user_info "JellyMac" "------------------------------------------------"
 log_user_info "JellyMac" ""
@@ -1339,7 +1316,6 @@ else log_user_info "JellyMac" "📋 Skipping initial clipboard checks ('pbpaste'
 if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
     check_and_resume_youtube_queue
 fi
-
 log_user_status "JellyMac" "🔄 JellyMac is ready! Watching for new links or media every ${MAIN_LOOP_SLEEP_INTERVAL:-15} seconds..."
 log_user_status "JellyMac" "(Press Ctrl+C to exit any time)"
 while true; do
