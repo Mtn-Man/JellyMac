@@ -12,8 +12,8 @@
 # - Can fully automate the media acquisition pipeline for Jellyfin users (or Plex/Emby)
 #
 # Author: Eli Sher (Mtn_Man)
-# Version: v0.2.4
-# Last Updated: 2025-06-16
+# Version: v0.2.5
+# Last Updated: 2025-06-21
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
@@ -1218,7 +1218,7 @@ _acquire_lock  # Ensure only one instance of JellyMac runs at a time
 show_startup_banner  # Call the startup banner function if enabled
 
 log_user_info "JellyMac" "🚀 JellyMac Starting..."
-log_user_info "JellyMac" "Version: v0.2.4 ($(date +%Y-%m-%d))"
+log_user_info "JellyMac" "Version: v0.2.5 ($(date +%Y-%m-%d))"
 log_user_info "JellyMac" "JellyMac location: $JELLYMAC_PROJECT_ROOT"
 log_debug_event "JellyMac" "   Log Level: ${LOG_LEVEL:-INFO} (Effective Syslog Level: $SCRIPT_CURRENT_LOG_LEVEL)"
 if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" && -n "$CURRENT_LOG_FILE_PATH" ]]; then
@@ -1307,7 +1307,7 @@ fi
 
 # --- Log Configuration Summary ---
 log_user_info "JellyMac" ""
-log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.4) ---"
+log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.5) ---"
 log_user_info "JellyMac" "   Check Interval: ${MAIN_LOOP_SLEEP_INTERVAL:-2}s | Max Processors: ${MAX_CONCURRENT_PROCESSORS:-2}"
 log_user_info "JellyMac" ""
 log_user_info "JellyMac" "  Media Destinations:"
