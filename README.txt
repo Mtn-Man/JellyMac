@@ -3,96 +3,110 @@
 │           Automated Video Downloader for macOS              │
 └─────────────────────────────────────────────────────────────┘
 
-JellyMac is a lightweight tool that simplifies managing your media 
-library. Whether you're downloading YouTube videos, organizing movies 
-and TV shows, or automating torrent workflows, JellyMac handles it all 
-with ease. Designed for macOS users, it also integrates seamlessly with 
-media servers like Jellyfin and Plex and your existing setups.
+JellyMac is a sophisticated media automation tool that handles
+both YouTube content and torrent downloads with complete library
+integration. Copy a YouTube or magnet link, and JellyMac handles
+everything:
 
+copy link → download video → clean name → intelligent sorting → library sync → ready to watch!
+
+All with zero additional user input. Just copy, done. Media is ready to stream.
+
+
+Don't need all that? Jellymac is also a fully featured, free YouTube downloader,
+that works well with minimal setup!
+
+---
 
 WHO THIS IS FOR
 ---------------
+• YouTube content collectors who want automatic download and organization
+• Jellyfin/Plex users who want media automatically integrated and synced
+• Technical users who appreciate clipboard-based workflows
+• Media enthusiasts who want clean, human-readable filenames
+• Home server operators who need reliable network transfers
+• Anyone who values "set and forget" automation that works invisibly
 
-✓ Anyone who downloads YouTube videos and wants them organized automatically
-✓ People who collect movies and TV shows and want seamless organization
-✓ Mac users who want powerful automation that works reliably behind the scenes
-✓ Content creators and researchers who need reliable video archiving
-✓ Home media enthusiasts who want professional-quality organization
-✓ You — if you appreciate invisible software that saves you time and stress
-
+---
 
 WHAT IT DOES
 ------------
 
 Core Automation:
-
-• Complete YouTube Workflow - Copy links → Download → Perfect file names → Library → Done!
-• Complete Magnet Workflow - Copy links → Transmission → Download → Sort → Library → Done!
-• Intelligent File Organization - Movies and TV shows automatically sorted with clean names
-• Background Processing - Everything happens automatically while you work or go grab coffee
+• Complete YouTube Workflow - Copy link → Download → Organize → Done!
+• Complete Magnet Workflow - Copy link → Download → Sort → Done!
+• Intelligent File Organization - Auto-sorted with clean names
+• Background Processing - Queueing, monitoring, and cleanup
 
 Smart Features:
-
-• Never Download Twice - Remembers what you've downloaded across restarts
+• Never Download Twice - Smart tracking prevents duplicates
 • Progress Notifications - Desktop alerts when downloads complete
 • Network Smart - Works with local folders or network drives/NAS
 • Queue Management - Copy multiple links, they process automatically
 
-Media Server Integration:
+Technical Sophistication:
+• Network Intelligence - Volume validation & transfer reliability
+• Error Recovery - YouTube SABR recovery & automatic quarantine
+• macOS Integration - Clipboard monitoring, notifications, & caffeinate
 
+Media Server Integration:
 • Jellyfin Integration - Auto-scan libraries when new content arrives
 • Plex Support - Works with Plex media servers
-• No Server Installation - Your Mac runs JellyMac, media server can be anywhere
+• No Server Installation - Your Mac runs JellyMac, server can be anywhere
 
+---
 
 QUICKSTART GUIDE
 ----------------
-
-Step 1: Install Homebrew
-
-If you don't already have Homebrew, install it by running this 
-command in Terminal:
+Step 1: Install Homebrew (if you don't have it)
 
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 Step 2: Install and Start JellyMac
 
-Run this command to download, set up, and automatically start JellyMac:
-
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/dev/install.sh)"
 
-That's it! JellyMac will start automatically after installation and guide 
-you through the interactive setup to configure your media folders and 
-services.
+That's it! JellyMac will start automatically and guide you through
+the interactive setup.
 
 For future use, to start JellyMac again:
 
     cd ~/JellyMac && ./jellymac.sh
 
-For detailed instructions and troubleshooting, see the Getting_Started.txt 
-guide.
+For detailed instructions, see the **Getting_Started.txt** guide.
 
-
-=================================================================
+---
 
 IMPORTANT DISCLAIMERS
 ---------------------
+Beta Software: JellyMac is in ongoing development. Always maintain
+backups of important media files.
 
-Beta Software: JellyMac is still in ongoing development. Always maintain 
-backups of important media files before use.
+Legal Responsibility: Use this tool only with media you have the
+legal right to access and manage.
 
-Legal Responsibility: Use this tool only with media you have the legal 
-right to access and manage. Ensure compliance with local laws and 
-platform terms of service.
+Moral Responsibility: If you find value in someone's work, please
+consider supporting them. Your support genuinely matters.
 
-Moral Responsibility: If you find value in someone's work, consider supporting them.
-Whether through direct donation, merchandise, patreon, crypto, or by other means,
-your support genuinely matters.
+---
 
-=================================================================
+FOR DEVELOPERS AND ADVANCED USERS
+---------------------------------
+JellyMac is highly configurable and extensible. For details:
+
+• Configuration_Guide.txt: A detailed explanation of every
+  setting available in lib/jellymac_config.sh.
+
+• Arr_Suite_Handoff_Guide.txt: Instructions for integrating
+  JellyMac with your existing Sonarr and Radarr setup.
+
+• Code Comments: The shell scripts in lib/ and bin/ are
+  extensively commented. Everything is Bash 3.2 compliant for
+  broader compatibility.
+
+---
 
 LICENSE AND CONTACT
 -------------------
-
 License: MIT License - See LICENSE.txt
 Contributor: Eli Sher (Mtn-Man) - elisher@duck.com

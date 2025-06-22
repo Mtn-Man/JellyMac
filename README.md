@@ -4,11 +4,11 @@
 
 JellyMac is a sophisticated media automation tool that handles both YouTube content and torrent downloads with complete library integration. Copy a YouTube or magnet link, and JellyMac handles everything: 
 
-copy → download → intelligent processing → clean naming → sorting → library sync → ready to watch! 
+copy link → download video → clean name → intelligent sorting → library sync → ready to watch! 
 
 All with zero additional user input. Just copy, done. Media is ready to stream.
 
-**Don't need all that?** Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup!
+**Don't need all that?** Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup an any mac!
 
 ---
 
