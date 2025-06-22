@@ -72,23 +72,20 @@ All with zero additional user input. Just copy, done. Media is ready to stream.
 
 ## QUICKSTART GUIDE
 
-### Step 1: Install Homebrew (for more info please visit brew.sh)
+### Step 1: Install Homebrew (for more info please visit [brew.sh](https://brew.sh))
 
 If you don't already have Homebrew, install it by running this command in your Terminal app:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
-
 ### Step 2: Install and Start JellyMac
 
 Run this command to download, set up, and automatically start JellyMac:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/dev/install.sh)"
-```
-
-That's it! JellyMac will start automatically after installation and guide you through the interactive setup to configure your media folders and services.
+```That's it! JellyMac will start automatically after installation and guide you through the interactive setup to configure your media folders and services.
 
 ### For Future Use
 
@@ -129,3 +126,6 @@ JellyMac is designed to be highly configurable and extensible. If you want to di
 **License:** MIT License - See LICENSE.txt  
 
 **Contributor:** Eli Sher (Mtn-Man) - elisher@duck.com
+
+
+
