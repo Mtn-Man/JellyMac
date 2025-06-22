@@ -977,8 +977,7 @@ _check_clipboard_youtube() {
                 else
                     log_warn_event "JellyMac" "❌ YouTube download failed: '${trimmed_cb:0:60}...'"
                     send_desktop_notification "JellyMac: YouTube Error" "Failed: ${trimmed_cb:0:60}..." "Basso"
-                    # Consider if the "run yt-dlp -u" message is still relevant
-                    log_warn_event "JellyMac" "Close JellyMac, run yt-dlp -u, restart JellyMac and try again."
+                    log_warn_event "JellyMac" "Close JellyMac, run brew update && brew upgrade yt-dlp, restart JellyMac and try again."
                 fi
 
                 # Clear tracking variables after completion

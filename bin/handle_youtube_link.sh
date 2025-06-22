@@ -232,26 +232,35 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
     
     log_user_progress "YouTube" "Detected SABR streaming issue. Retrying with alternative player client..."
     
-    # Create retry arguments, excluding cookies (incompatible with Android client)
+    # Create retry arguments, excluding cookies (incompatible with mobile clients)
     declare -a ytdlp_retry_args=()
-    prev_arg=""
-    for arg in "${ytdlp_command_args[@]}"; do
-        if [[ "$arg" != "$COOKIES_FILE" && "$prev_arg" != "--cookies" ]]; then
+    i=0
+    while [[ $i -lt ${#ytdlp_command_args[@]} ]]; do
+        arg="${ytdlp_command_args[$i]}"
+        
+        # Skip cookies arguments
+        if [[ "$arg" == "--cookies" ]]; then
+            i=$((i+2))  # Skip both --cookies and the filename
+            continue
+        elif [[ "$arg" == "$COOKIES_FILE" && $i -gt 0 && "${ytdlp_command_args[$((i-1))]}" == "--cookies" ]]; then
+            i=$((i+1))  # Skip the filename (already skipped --cookies)
+            continue
+        else
             ytdlp_retry_args[${#ytdlp_retry_args[@]}]="$arg"
         fi
-        prev_arg="$arg"
+        i=$((i+1))
     done
     
-    # Add Android client arguments (better SABR compatibility)
+    # Add iOS client arguments (better SABR compatibility)
     ytdlp_retry_args[${#ytdlp_retry_args[@]}]="--extractor-args"
-    ytdlp_retry_args[${#ytdlp_retry_args[@]}]="youtube:player_client=android"
+    ytdlp_retry_args[${#ytdlp_retry_args[@]}]="youtube:player_client=ios"
     
     # Inform user about cookies removal if they were enabled
     if [[ "${COOKIES_ENABLED:-false}" == "true" && -n "$COOKIES_FILE" ]]; then
-        log_debug_event "YouTube" "Note: Cookies disabled for Android client retry (not supported)"
+        log_debug_event "YouTube" "Note: Cookies disabled for iOS client retry (not supported)"
     fi
     
-    # Execute first retry attempt with Android client
+    # Execute first retry attempt with iOS client
     log_debug_event "YouTube" "Retrying with command: $YTDLP_EXECUTABLE ${ytdlp_retry_args[*]}"
     
     set +e
@@ -264,33 +273,49 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
     set -e
     
     if [[ "$YTDLP_EXIT_CODE" -eq 0 ]]; then
-        log_user_success "YouTube" "SABR stream retry successful using android player client!"
+        log_user_success "YouTube" "SABR stream retry successful using iOS player client!"
         ytdlp_stdout_content=$(<"$YTDLP_STDOUT_CAPTURE_FILE")
         ytdlp_stderr_content=$(<"$YTDLP_STDERR_CAPTURE_FILE")
     else
-        log_warn_event "YouTube" "Android player client retry also failed. Trying with iOS player and 'b' format as final attempt..."
+        log_warn_event "YouTube" "iOS player client retry also failed. Trying with Android player and 'b' format as final attempt..."
         
-        # Prepare final attempt with iOS client and simplified format
+        # Prepare final attempt with Android client and simplified format
         declare -a ytdlp_final_args=()
-        prev_arg=""
-        for arg in "${ytdlp_command_args[@]}"; do
-            if [[ "$arg" != "$YTDLP_FORMAT" && "$prev_arg" != "--format" && 
-                  "$arg" != "$COOKIES_FILE" && "$prev_arg" != "--cookies" ]]; then
+        i=0
+        while [[ $i -lt ${#ytdlp_command_args[@]} ]]; do
+            arg="${ytdlp_command_args[$i]}"
+            
+            # Skip cookies arguments
+            if [[ "$arg" == "--cookies" ]]; then
+                i=$((i+2))  # Skip both --cookies and the filename
+                continue
+            elif [[ "$arg" == "$COOKIES_FILE" && $i -gt 0 && "${ytdlp_command_args[$((i-1))]}" == "--cookies" ]]; then
+                i=$((i+1))  # Skip the filename (already skipped --cookies)
+                continue
+            # Skip format arguments (will be replaced with 'b')
+            elif [[ "$arg" == "--format" ]]; then
+                i=$((i+2))  # Skip both --format and the format value
+                continue
+            elif [[ "$arg" == "$YTDLP_FORMAT" && $i -gt 0 && "${ytdlp_command_args[$((i-1))]}" == "--format" ]]; then
+                i=$((i+1))  # Skip the format value (already skipped --format)
+                continue
+            else
                 ytdlp_final_args[${#ytdlp_final_args[@]}]="$arg"
             fi
-            prev_arg="$arg"
+            i=$((i+1))
         done
-        # Use 'b' format (best) with iOS player client as final attempt
+        
+        # Use 'b' format (best) with Android player client as final attempt
         ytdlp_final_args[${#ytdlp_final_args[@]}]="--format"
         ytdlp_final_args[${#ytdlp_final_args[@]}]="b"
         ytdlp_final_args[${#ytdlp_final_args[@]}]="--extractor-args"
-        ytdlp_final_args[${#ytdlp_final_args[@]}]="youtube:player_client=ios"
+        ytdlp_final_args[${#ytdlp_final_args[@]}]="youtube:player_client=android"
         
         # Inform user about format and cookies changes
         if [[ "${COOKIES_ENABLED:-false}" == "true" && -n "$COOKIES_FILE" ]]; then
-            log_debug_event "YouTube" "Note: Using format 'b' with iOS player and cookies disabled for final retry attempt"
+            log_debug_event "YouTube" "Note: Using format 'b' with Android player and cookies disabled for final retry attempt"
         else
-            log_debug_event "YouTube" "Note: Using format 'b' with iOS player for final retry attempt"
+            log_debug_event "YouTube" "Note: Using format 'b' with Android player for final retry attempt"
         fi
         
         log_debug_event "YouTube" "Final attempt with command: $YTDLP_EXECUTABLE ${ytdlp_final_args[*]}"
@@ -308,7 +333,7 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
         ytdlp_stderr_content=$(<"$YTDLP_STDERR_CAPTURE_FILE")
         
         if [[ "$YTDLP_EXIT_CODE" -eq 0 ]]; then
-            log_user_success "YouTube" "Final attempt with iOS player and 'b' format successful!"
+            log_user_success "YouTube" "Final attempt with Android player and 'b' format successful!"
         else
             log_user_info "YouTube" "All retry attempts failed for this YouTube URL."
             

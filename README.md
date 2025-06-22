@@ -1,24 +1,24 @@
 # 🪼 JellyMac
 
-**Automate your media downloads and organization on macOS**
+**Complete media automation for macOS - from clipboard to library**
 
-JellyMac is a lightweight tool that simplifies managing your media library. Whether you're downloading YouTube videos, organizing movies and TV shows, or automating torrent workflows, JellyMac handles it all with ease. Designed for macOS users, it integrates seamlessly with media servers like Jellyfin and Plex.
+JellyMac is a sophisticated media automation tool that handles both YouTube content and torrent downloads with complete library integration. Copy a YouTube link or magnet link, and JellyMac handles everything: download → intelligent processing → clean naming → library integration → automatic cleanup. All with zero additional user input.
 
 ---
 
 ## WHO THIS IS FOR
 
-**Anyone who downloads YouTube videos** and wants them organized with a readable name automatically 
+**YouTube content collectors** who want automatic download and organization
 
-**People who collect movies and TV shows** and want seamless organization 
+**Jellyfin/Plex users** who want their media automatically integrated and scanned
 
-**Mac users who want powerful automation** that works reliably behind the scenes  
+**Technical users** who appreciate clipboard-based workflows and background processing
 
-**Content creators and researchers** who need reliable video archiving and consistent network transfers 
+**Media enthusiasts** who want clean, human-readable filenames without clutter
 
-**Home media enthusiasts** who want professional-quality organization
+**Home server operators** who need reliable network transfers and automatic library scanning
 
-**You**  someone who appreciates invisible software that saves you time and stress
+**Anyone** who values "set and forget" automation that works invisibly behind the scenes
 
 ---
 
@@ -26,23 +26,31 @@ JellyMac is a lightweight tool that simplifies managing your media library. Whet
 
 ### Core Automation
 
-🎬 **Complete YouTube Workflow** - Copy links → Download → Perfect file names → Library → Done!
+🎬 **Complete YouTube Workflow** - Copy YouTube link → Download → Organize → Library → Done!
 
-🧲 **Complete Magnet Workflow** - Copy links → Transmission → Download → Sort → Library → Done!
+🧲 **Complete Magnet Workflow** - Copy magnet link → Download → Clean naming → Library → Done!
 
-📁 **Intelligent File Organization** - Movies and TV shows automatically sorted with clean names  
+📁 **Intelligent File Organization** - Movies and TV shows automatically sorted with clean names
 
-🔄 **Background Processing** - Everything happens automatically while you work or go grab coffee  
+🔄 **Background Processing** - Queue management, progress monitoring, and automatic cleanup
 
 ### Smart Features 
 
-🛡️ **Never Download Twice** - Remembers what you've downloaded across restarts 
+🛡️ **Never Download Twice** - Smart tracking prevents duplicate downloads across sessions
 
 📱 **Progress Notifications** - Desktop alerts when downloads complete  
 
 🌐 **Network Smart** - Works with local folders or network drives/NAS  
 
 ⚡ **Queue Management** - Copy multiple links, they process automatically  
+
+### Technical Sophistication
+
+🌐 **Network Intelligence** - Volume validation, transfer reliability, and rsync timeouts
+
+⚡ **Error Recovery** - YouTube SABR recovery, transfer failure handling, and automatic quarantine
+
+📱 **macOS Integration** - Clipboard monitoring, desktop notifications, and caffeinate support
 
 ### Media Server Integration
 

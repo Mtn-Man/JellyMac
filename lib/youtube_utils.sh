@@ -105,7 +105,8 @@ _process_youtube_queue() {
         if wait "$handler_pid"; then
             local wait_exit_code=$?
             if [[ "$wait_exit_code" -eq 0 ]]; then
-                log_user_info "JellyMac" "✅ Queued download complete ($processed_count/$total_count): '${queued_url:0:60}...'"
+                # Success - handle_youtube_link.sh already logs completion with filename
+                :
             elif [[ "$wait_exit_code" -eq 130 ]]; then
                 # Interrupted (SIGINT)
                 ((interrupted_count++))
@@ -133,16 +134,10 @@ _process_youtube_queue() {
     done
     
     # Summary reporting
-    local success_count=$((processed_count - failed_count - interrupted_count))
-    
-    if [[ "$failed_count" -eq 0 && "$interrupted_count" -eq 0 ]]; then
-        log_user_info "JellyMac" "📋 Queue processing complete! Successfully processed all downloads."
-    else
+    # Re-queue any failed or interrupted downloads for next startup
+    if [[ "$failed_count" -gt 0 || "$interrupted_count" -gt 0 ]]; then
         local requeued_count=$((failed_count + interrupted_count))
-        log_user_info "JellyMac" "📋 Queue processing complete! $success_count successful, $failed_count failed, $interrupted_count interrupted."
-        if [[ "$requeued_count" -gt 0 ]]; then
-            log_user_info "JellyMac" "💡 $requeued_count downloads re-queued for retry on next JellyMac startup."
-        fi
+        log_user_info "JellyMac" "💡 $requeued_count downloads re-queued for retry on next JellyMac startup."
     fi
 }
 
