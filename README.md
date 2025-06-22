@@ -15,10 +15,15 @@ All with zero additional user input. Just copy, done. Media is ready to stream.
 ## WHO THIS IS FOR
 
 **YouTube content collectors** who want automatic download and organization
-**Jellyfin/Plex users** who want their media automatically integrated and scanned
+
+**Jellyfin/Plex users** who want their media automatically integrated and synced with their library
+
 **Technical users** who appreciate clipboard-based workflows and background processing
+
 **Media enthusiasts** who want clean, human-readable filenames without clutter
+
 **Home server operators** who need reliable network transfers and automatic library scanning
+
 **Anyone** who values "set and forget" automation that works reliably and invisibly
 
 ---
@@ -26,25 +31,41 @@ All with zero additional user input. Just copy, done. Media is ready to stream.
 ## WHAT IT DOES
 
 ### Core Automation
+
 🎬 **Complete YouTube Workflow** - Copy YouTube link → Download → Organize → Library → Done!
+
 🧲 **Complete Magnet Workflow** - Copy magnet link → Download → Clean naming → Library → Done!
+
 📁 **Intelligent File Organization** - Movies and TV shows automatically sorted with clean names
+
 🔄 **Background Processing** - Queue management, progress monitoring, and automatic cleanup
 
 ### Smart Features 
+
 🛡️ **Never Download Twice** - Smart tracking prevents duplicate downloads across sessions
+
 📱 **Progress Notifications** - Desktop alerts when downloads complete  
+
 🌐 **Network Smart** - Works with local folders or network drives/NAS  
+
 ⚡ **Queue Management** - Copy multiple links, they process automatically  
 
+
 ### Technical Sophistication
+
 🌐 **Network Intelligence** - Volume validation, transfer reliability, and rsync timeouts
+
 ⚡ **Error Recovery** - YouTube SABR recovery, transfer failure handling, and automatic quarantine
+
 📱 **macOS Integration** - Clipboard monitoring, desktop notifications, and caffeinate support
 
+
 ### Media Server Integration
+
 🪼 **Jellyfin Integration** - Auto-scan libraries when new content arrives
+
 📺 **Plex Support** - Works with Plex media servers  
+
 🖥️ **No Server Installation** - Your Mac runs JellyMac, media server can be anywhere
 
 ---
@@ -106,4 +127,5 @@ JellyMac is designed to be highly configurable and extensible. If you want to di
 ## LICENSE AND CONTACT
 
 **License:** MIT License - See LICENSE.txt  
+
 **Contributor:** Eli Sher (Mtn-Man) - elisher@duck.com
