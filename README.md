@@ -2,26 +2,23 @@
 
 **Complete media automation for macOS - from clipboard to library**
 
-JellyMac is a sophisticated media automation tool that handles both YouTube content and torrent downloads with complete library integration. Copy a YouTube or magnet link, and JellyMac handles everything: download → intelligent processing → clean naming → library integration → automatic cleanup. All with zero additional user input. 
+JellyMac is a sophisticated media automation tool that handles both YouTube content and torrent downloads with complete library integration. Copy a YouTube or magnet link, and JellyMac handles everything: 
 
-**Don't need all that?** 
+copy → download → intelligent processing → clean naming → sorting → library sync → ready to watch! 
 
-Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup!
+All with zero additional user input. Just copy, done. Media is ready to stream.
+
+**Don't need all that?** Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup!
 
 ---
 
 ## WHO THIS IS FOR
 
 **YouTube content collectors** who want automatic download and organization
-
 **Jellyfin/Plex users** who want their media automatically integrated and scanned
-
 **Technical users** who appreciate clipboard-based workflows and background processing
-
 **Media enthusiasts** who want clean, human-readable filenames without clutter
-
 **Home server operators** who need reliable network transfers and automatic library scanning
-
 **Anyone** who values "set and forget" automation that works reliably and invisibly
 
 ---
@@ -29,39 +26,25 @@ Jellymac is also a fully featured, free YouTube downloader, that works well with
 ## WHAT IT DOES
 
 ### Core Automation
-
 🎬 **Complete YouTube Workflow** - Copy YouTube link → Download → Organize → Library → Done!
-
 🧲 **Complete Magnet Workflow** - Copy magnet link → Download → Clean naming → Library → Done!
-
 📁 **Intelligent File Organization** - Movies and TV shows automatically sorted with clean names
-
 🔄 **Background Processing** - Queue management, progress monitoring, and automatic cleanup
 
 ### Smart Features 
-
 🛡️ **Never Download Twice** - Smart tracking prevents duplicate downloads across sessions
-
 📱 **Progress Notifications** - Desktop alerts when downloads complete  
-
 🌐 **Network Smart** - Works with local folders or network drives/NAS  
-
 ⚡ **Queue Management** - Copy multiple links, they process automatically  
 
 ### Technical Sophistication
-
 🌐 **Network Intelligence** - Volume validation, transfer reliability, and rsync timeouts
-
 ⚡ **Error Recovery** - YouTube SABR recovery, transfer failure handling, and automatic quarantine
-
 📱 **macOS Integration** - Clipboard monitoring, desktop notifications, and caffeinate support
 
 ### Media Server Integration
-
 🪼 **Jellyfin Integration** - Auto-scan libraries when new content arrives
-
 📺 **Plex Support** - Works with Plex media servers  
-
 🖥️ **No Server Installation** - Your Mac runs JellyMac, media server can be anywhere
 
 ---
