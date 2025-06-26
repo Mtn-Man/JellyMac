@@ -18,18 +18,28 @@ LIB_DIR="$(cd "${SCRIPT_DIR_PROCESSOR}/../lib" && pwd)"
 # shellcheck source=../lib/logging_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/logging_utils.sh"
-# shellcheck source=../lib/jellymac_config.sh
+
+# Source the parser to get the arrays (since Bash arrays cannot be exported to subshells)
+# shellcheck source=../lib/parsing_utils.sh
 # shellcheck disable=SC1091
-source "${LIB_DIR}/jellymac_config.sh"
+source "${LIB_DIR}/parsing_utils.sh"
+
+# Parse the configuration to populate the arrays
+if ! _parse_and_export_config "${JELLYMAC_PROJECT_ROOT}/Configuration.txt"; then
+    log_error_event "Processing" "Failed to parse configuration file. Cannot continue."
+    exit 1
+fi
+
+# Configuration is now inherited from the parent shell (jellymac.sh)
+# shellcheck source=../lib/common_utils.sh
+# shellcheck disable=SC1091
+source "${LIB_DIR}/common_utils.sh" # Provides find_executable, quarantine_item, play_sound_notification etc.
 # shellcheck source=../lib/media_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/media_utils.sh"
 # shellcheck source=../lib/jellyfin_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/jellyfin_utils.sh"
-# shellcheck source=../lib/common_utils.sh
-# shellcheck disable=SC1091
-source "${LIB_DIR}/common_utils.sh" # Provides find_executable, quarantine_item, play_sound_notification etc.
 
 # --- Log Level & Prefix Initialization (after config is sourced) ---
 
@@ -609,7 +619,6 @@ if [[ "$PROCESSOR_EXIT_CODE" -eq 0 ]]; then
 fi
 # ================================================================= #
 
-
 # --- Finalize ---
 PROCESS_END_TIME=$(date +%s)
 ELAPSED_SECONDS=$((PROCESS_END_TIME - PROCESS_START_TIME))
@@ -621,6 +630,7 @@ if [[ "$PROCESSOR_EXIT_CODE" -eq 0 ]]; then
     # Get the main media filename that was just organized
     organized_filename="$(basename "${final_main_media_dest_path:-$(basename "$MAIN_ITEM_PATH")}")"
     log_user_complete "Processing" "✨ Successfully processed: $organized_filename (${MINS}m${SECS}s)"
+    send_desktop_notification "JellyMac: Complete" "Successfully processed: ${organized_filename:0:50}... (${MINS}m${SECS}s)"
     play_sound_notification "task_success" "Processing"
 elif [[ "$PROCESSOR_EXIT_CODE" -eq 2 ]]; then 
     log_warn_event "Processing" "🟡 Item quarantined: $(basename "$MAIN_ITEM_PATH") (${MINS}m${SECS}s)"

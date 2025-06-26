@@ -60,10 +60,9 @@ If Sonarr/Radarr Are Running Locally on Your Mac
        /srv/media_storage/Media_Imports/TV_Handoff
 
 2. Configure JellyMac
-   - Edit lib/jellymac_config.sh.
+   - Edit Configuration.txt.
    - Set:
-       DEST_DIR_SHOWS  = your TV handoff folder (as seen by your Mac)
-       DEST_DIR_MOVIES = your Movie handoff folder (as seen by your Mac)
+       DROP_FOLDER = your TV handoff folder (as seen by your Mac)
    - (Optional) To avoid redundant Jellyfin scans, set:
        ENABLE_JELLYFIN_SCAN_MOVIES="false"
        ENABLE_JELLYFIN_SCAN_SHOWS="false"

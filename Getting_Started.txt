@@ -143,7 +143,7 @@ INSTALLATION
   -------------------------------------------------
   Homebrew is a package manager for macOS and is a prerequisite for
   JellyMac, as it's used to install necessary helper tools like
-  yt-dlp, ffmpeg, and Transmission.
+  yt-dlp, ffmpeg, flock, and Transmission.
 
   If you don't already have Homebrew, open your Terminal app (usually
   found in /Applications/Utilities/) and run the following command.
@@ -219,67 +219,57 @@ If automatic configuration fails or you prefer manual setup:
 CONFIGURATION
 -------------
 
-For many users, JellyMac's interactive setup wizard handles
-all necessary configuration during the first run. However,
-if you're someone like me you will want to customize settings for:
+Once you have JellyMac downloaded, the next crucial step is to create and edit 
+your configuration file. This file tells JellyMac where your media folders are, 
+what features to enable, and how to connect to other services.
 
-• Advanced media server integration (Jellyfin API, custom paths)
-• Network storage and SMB/NFS shares
-• Custom download quality settings
-• Specialized folder structures
+1.  Navigate to your JellyMac project folder in Terminal.
+2.  Run the script for the first time: `./jellymac.sh`
+3.  The script will detect that you don't have a config file and offer to 
+    create one for you from a template. Press 'Y' and Enter.
+    
+    This will create a `Configuration.txt` file in your main JellyMac folder.
 
+4.  The script will then ask if you want to customize the settings. Press 'Y' 
+    and Enter to open `Configuration.txt` in your default text editor.
 
-Basic Configuration:
-The main configuration file is located at:
-  ~/JellyMac/lib/jellymac_config.sh
+    If it doesn't open automatically, you can open `Configuration.txt` manually.
 
-Most Common Settings:
-• Media server integration (Jellyfin):
-  - JELLYFIN_SERVER="http://your-server-ip:8096"
-  - JELLYFIN_API_KEY="your-api-key"
-  - Enable auto-scans: ENABLE_JELLYFIN_SCAN_MOVIES="true"
+### Key Settings to Configure
 
-• Custom library paths:
-  - DEST_DIR_MOVIES="/path/to/your/Movies"
-  - DEST_DIR_SHOWS="/path/to/your/Shows"
-  - DEST_DIR_YOUTUBE="/path/to/your/YouTube"
+When you open `Configuration.txt`, you'll see many options with comments 
+explaining what they do. For a basic setup, you only need to focus on a few key 
+areas.
 
-Jellyfin Server Integration (Optional):
--------------------------------------
-If you use Jellyfin and want automatic library scans when new media arrives,
-configure these settings in your jellymac_config.sh file:
+Example: If your movies are in `/Users/yourname/MyMedia/Movies`, you would change 
+the line in `Configuration.txt` to:
 
-1. Server Connection:
-   JELLYFIN_SERVER="http://your-server-ip:8096"
-   (Example: http://192.168.0.100:8096)
+DEST_DIR_MOVIES="/Users/yourname/MyMedia/Movies"
 
-2. API Authentication:
-   JELLYFIN_API_KEY="your-jellyfin-api-key"
-   
-   To get your API key:
-   1. Open Jellyfin web interface
-   2. Click user icon → Dashboard → API Keys
-   3. Click "+" to create new key
-   4. Name it "JellyMac" and copy the generated key
-   5. Paste it into jellymac_config.sh as the JELLYFIN_API_KEY value
+---
 
-3. Enable Auto-Scans:
-   After configuring your server and API key, enable automatic library scans:
-   ENABLE_JELLYFIN_SCAN_MOVIES="true"    # Scan after new movies
-   ENABLE_JELLYFIN_SCAN_SHOWS="true"     # Scan after new TV shows
-   ENABLE_JELLYFIN_SCAN_YOUTUBE="true"   # Scan after new YouTube videos
+#### 2. Jellyfin Integration (Optional but Recommended)
 
-Note: These settings are optional. JellyMac works perfectly fine without
-Jellyfin integration - it will still organize your media files automatically.
+If you use Jellyfin, connecting it to JellyMac allows for automatic library 
+updates after new media is added.
 
-For Complete Configuration Options:
-See the comprehensive Configuration_Guide.txt in your
-JellyMac folder for detailed explanations of all 50+
-available settings.
+1.  Open your Jellyfin server in a web browser.
+2.  Go to Dashboard -> API Keys.
+3.  Click the '+' icon to create a new API Key. Give it a name like "JellyMac".
+4.  Copy the generated API Key.
+5.  Paste it into `Configuration.txt` as the `JELLYFIN_API_KEY` value.
+6.  Also, set the `JELLYFIN_SERVER` to your server's address (e.g., 
+    `http://localhost:8096`).
+7.  Finally, set the `ENABLE_JELLYFIN_SCAN_...` options to `true` for the 
+    libraries you want to auto-update.
 
-After making changes:
-Save the file and restart JellyMac for changes to take effect.
+---
 
+### Step 4: Run JellyMac
+
+Once your `Configuration.txt` is saved, you're ready to go!
+
+---
 
 DAILY USAGE
 -----------
@@ -322,7 +312,7 @@ NAS or another computer on the network, create a network share, then ensure it i
          `smb://server-ip/MediaShareName` or
          `nfs://server-ip/path/to/export`
        - Ensure the mount point matches what you've set for
-         `DEST_DIR_MOVIES`, etc., in `lib/jellymac_config.sh`
+         `DEST_DIR_MOVIES`, etc., in `Configuration.txt`
          (e.g., `/Volumes/MediaShareName/Movies`).
 
   2. Test Your Setup:
@@ -373,40 +363,20 @@ using: brew install --cask iina
 TROUBLESHOOTING
 ---------------
 
-  1. Common Issues:
+- **"File not found" or "Permission denied" errors:**
+  * Verify paths in `Configuration.txt` are correct and that you have read/write
+    permissions for those folders.
+  * For network drives, ensure they are mounted and accessible in Finder.
 
-       - Permission Problems:
-           JellyMac needs to read from your `DROP_FOLDER`
-           and write to your destination directories.
-           * Check ownership/permissions: `ls -la [directory]`
-           * Fix (example): 
-           
-           chmod u+rwx [directory]             (Gives your user account read, write, execute)
+- **YouTube downloads failing:**
+  * Run `brew update && brew upgrade yt-dlp` to get the latest version, which
+    often fixes issues with YouTube's changes.
+  * Check for any error messages in the terminal when a download fails.
 
-       - Network Share Issues:
-           * Ensure shares are mounted before starting.
-           * Verify paths in `lib/jellymac_config.sh` are
-             correct for the mounted shares.
-           * Check server/NAS permissions for your Mac user.
-
-       - "Command not found" for `yt-dlp`, `flock`, etc.:
-           * Ensure Homebrew is installed and its bin directory
-             (usually `/opt/homebrew/bin`) is in your PATH.
-           * Let JellyMac's first-run interactive setup
-             install them, or install them manually.
-           * Ensure installed homebrew programs are updated, run: brew upgrade && brew update
-
-  2. View the Logs:
-       Logs are crucial for diagnosing issues.
-       Location: `~/JellyMac/logs/`
-       Current log: `jellymac_automator_log_YYYY-MM-DD.log`
-
-  3. Starting Over / Re-checking Config:
-       - Stop JellyMac (Ctrl+C in Terminal).
-       - Carefully review paths in `lib/jellymac_config.sh`.
-       - Verify network shares are mounted and writable.
-       - Re-run: `./jellymac.sh`
-         (It will re-validate dependencies and paths).
+- **Torrents not being added:**
+  * Ensure the Transmission app is running and the background service is enabled
+    (`brew services start transmission`).
+  * Carefully review paths in `Configuration.txt`.
 
 
 ACKNOWLEDGEMENTS

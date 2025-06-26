@@ -50,9 +50,7 @@ trap _cleanup_script_temp_files EXIT SIGINT SIGTERM
 # shellcheck source=../lib/logging_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/logging_utils.sh"
-# shellcheck source=../lib/jellymac_config.sh 
-# shellcheck disable=SC1091
-source "${LIB_DIR}/jellymac_config.sh" 
+# Configuration is now inherited from the parent shell (jellymac.sh)
 # shellcheck source=../lib/common_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/common_utils.sh" 
@@ -64,11 +62,17 @@ source "${LIB_DIR}/jellyfin_utils.sh"
 #==============================================================================
 # ARGUMENT VALIDATION AND SETUP
 #==============================================================================
-if [[ $# -ne 1 ]]; then
-    log_error_event "YouTube" "Usage: $SCRIPT_NAME <youtube_url>"
+if [[ $# -lt 1 ]]; then
+    log_error_event "YouTube" "Usage: $SCRIPT_NAME <youtube_url> [yt-dlp options...]"
     exit 1
 fi
+
 YOUTUBE_URL="$1"
+shift # Remove the URL from arguments, leaving only the options
+
+# All remaining arguments are user-defined yt-dlp options
+declare -a YTDLP_OPTS=("$@")
+
 if [[ -z "$YOUTUBE_URL" ]]; then
     log_error_event "YouTube" "YouTube URL cannot be empty."
     exit 1

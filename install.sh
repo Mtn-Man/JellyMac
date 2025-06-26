@@ -62,7 +62,7 @@ if [[ -d "$INSTALL_DIR" ]] && [[ -f "$INSTALL_DIR/jellymac.sh" ]]; then
             echo "                Quick Update Complete!"
             echo ""
             echo "✅ JellyMac updated successfully!"
-            echo "✅ Your existing configuration (jellymac_config.sh) has been preserved."
+            echo "✅ Your existing configuration (Configuration.txt) has been preserved."
             echo "✅ JellyMac is ready to use with your current settings."
             echo ""
             echo "To start JellyMac, navigate to its directory and run: cd $INSTALL_DIR && ./jellymac.sh"

@@ -1,10 +1,9 @@
 #!/bin/bash
 
 # lib/common_utils.sh
-# Contains common utility functions shared across the JellyMac project.
-# These functions should be as self-contained as possible but rely on
-# logging functions (from logging_utils.sh) and configuration variables
-# (from jellymac_config.sh) being sourced *before* this script.
+# Contains common, reusable utility functions for the JellyMac project.
+# Depends on SCRIPT_CURRENT_LOG_LEVEL being set and logging_utils.sh
+# and configuration variables (from Configuration.txt) being sourced *before* this script.
 # Assumes SCRIPT_DIR is exported by the main script for mktemp.
 
 if ! command -v log_info_event &>/dev/null; then
@@ -12,9 +11,9 @@ if ! command -v log_info_event &>/dev/null; then
     exit 1
 fi
 
-# --- Ensure STATE_DIR is available (expected from jellymac_config.sh) ---
-if [[ -z "$STATE_DIR" ]]; then
-    log_error_event "Utils" "CRITICAL: STATE_DIR is not set. This variable is expected from jellymac_config.sh. Exiting."
+# --- Ensure STATE_DIR is available (expected from Configuration.txt) ---
+if [[ -z "${STATE_DIR:-}" ]]; then
+    log_error_event "Utils" "CRITICAL: STATE_DIR is not set. This variable is expected from Configuration.txt. Exiting."
     exit 1
 elif [[ ! -d "$STATE_DIR" ]]; then
     log_user_info "Utils" "STATE_DIR ('$STATE_DIR') does not exist. Attempting to create."
@@ -934,7 +933,9 @@ send_desktop_notification() {
 #   $1: (Optional) Log prefix for logging messages. Defaults to "Utils"
 # Returns: 0 on success, 1 on failure
 # Side Effects: Removes completed torrents from Transmission daemon
-# Notes: Uses configuration from jellymac_config.sh (TRANSMISSION_AUTO_CLEANUP, etc.)
+# Notes: Uses configuration from Configuration.txt (TRANSMISSION_AUTO_CLEANUP, etc.)
+# This function should only be called from the main watcher script (jellymac.sh)
+# where it has access to the correct state and lock files.
 #==============================================================================
 cleanup_completed_torrents() {
     local log_prefix="${1:-Utils}"

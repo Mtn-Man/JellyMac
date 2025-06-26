@@ -47,24 +47,10 @@ trap _cleanup_script_temp_files EXIT SIGINT SIGTERM
 #==============================================================================
 
 # --- Source Libraries ---
-# Source order matters: logging -> config -> common -> others
 # shellcheck source=../lib/logging_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/logging_utils.sh"
-# shellcheck source=../lib/jellymac_config.sh
-# shellcheck disable=SC1091
-source "${LIB_DIR}/jellymac_config.sh" # Sources JELLYMAC_PROJECT_ROOT and all other configs
-
-# --- Variable Initialization for set -u compatibility ---
-TRANSMISSION_REMOTE_HOST="${TRANSMISSION_REMOTE_HOST:-}" 
-TRANSMISSION_REMOTE_AUTH="${TRANSMISSION_REMOTE_AUTH:-}"
-TORRENT_CLIENT_CLI_PATH="${TORRENT_CLIENT_CLI_PATH:-}"
-# STATE_DIR is expected to be set by jellymac_config.sh
-
-# Initialize logging system variables for set -u compatibility
-CURRENT_LOG_FILE_PATH="${CURRENT_LOG_FILE_PATH:-}"
-LAST_LOG_DATE_CHECKED="${LAST_LOG_DATE_CHECKED:-}"
-
+# Configuration is now inherited from the parent shell (jellymac.sh)
 # shellcheck source=../lib/common_utils.sh
 # shellcheck disable=SC1091
 source "${LIB_DIR}/common_utils.sh" # For find_executable, record_transfer_to_history, play_sound_notification
@@ -86,175 +72,133 @@ source "${LIB_DIR}/common_utils.sh" # For find_executable, record_transfer_to_hi
 #   1 - Failure (invalid format, connection error, or processing error)
 # Side Effects: Adds magnet link to Transmission, records history, sends notifications
 
-# --- Argument Validation ---
+# --- Pre-flight Checks & Variable Setup ---
+#==============================================================================
+# ARGUMENT VALIDATION
+#==============================================================================
 if [[ $# -ne 1 ]]; then
     log_error_event "Torrent" "Usage: $SCRIPT_NAME <magnet_url>"
     exit 1
 fi
-MAGNET_URL="$1" # Script argument, global to this script's execution
+MAGNET_URL="$1"
+log_debug_event "Torrent" "Processing URL: ${MAGNET_URL:0:100}..."
 
-log_user_start "Torrent" "🧲 Processing magnet link..."
-
-# Basic magnet link validation
-if ! [[ "$MAGNET_URL" =~ ^magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,} ]]; then
-    log_error_event "Torrent" "Invalid magnet link format provided: '${MAGNET_URL:0:100}...'"
-    exit 1
-fi
-log_debug_event "Torrent" "Received Magnet link: ${MAGNET_URL:0:70}..."
-
-# Extract magnet hash for history checking
-MAGNET_HASH="${MAGNET_URL#*xt=urn:btih:}"
-MAGNET_HASH="${MAGNET_HASH%%&*}"  # Remove any additional parameters
-MAGNET_HASH="${MAGNET_HASH:0:40}" # Ensure exactly 40 chars
-log_debug_event "Torrent" "Extracted magnet hash: $MAGNET_HASH"
-
-# Check magnet download archive to prevent duplicates
-if [[ -n "${DOWNLOAD_ARCHIVE_MAGNET:-}" ]]; then
-    if [[ -f "$DOWNLOAD_ARCHIVE_MAGNET" ]] && grep -q "^magnet $MAGNET_HASH$" "$DOWNLOAD_ARCHIVE_MAGNET" 2>/dev/null; then
-        log_user_info "Torrent" "🔄 Magnet link already processed previously (found in archive)"
-        log_user_info "Torrent" "Hash: $MAGNET_HASH"
-        log_user_info "Torrent" "Skipping duplicate download to prevent bandwidth waste and file conflicts"
-        exit 0
-    else
-        log_debug_event "Torrent" "Magnet hash not found in archive. Proceeding with download."
-    fi
-else
-    log_debug_event "Torrent" "DOWNLOAD_ARCHIVE_MAGNET not configured. Archive checking disabled."
-fi
-
-# --- Pre-flight Checks ---
-if [[ -z "$TRANSMISSION_REMOTE_HOST" ]]; then # From jellymac_config.sh
-    log_error_event "Torrent" "TRANSMISSION_REMOTE_HOST is not set in the configuration. Cannot connect to Transmission."
-    exit 1
-fi
-if [[ -z "${STATE_DIR:-}" ]]; then # STATE_DIR from jellymac_config.sh is needed for mktemp
-    log_error_event "Torrent" "STATE_DIR is not set in the configuration. Cannot create temporary files."
+#==============================================================================
+# CONFIGURATION AND DEPENDENCY VALIDATION
+#==============================================================================
+# Check essential configuration variables (expected to be inherited from parent)
+if [[ -z "$TRANSMISSION_REMOTE_HOST" ]]; then 
+    log_error_event "Torrent" "CRITICAL: TRANSMISSION_REMOTE_HOST is not set."
     exit 1
 fi
 
-
-# Determine Transmission CLI executable path using find_executable from common_utils.sh
-# TORRENT_CLIENT_CLI_PATH is from jellymac_config.sh
-TRANSMISSION_CLI_EXECUTABLE=$(find_executable "transmission-remote" "${TORRENT_CLIENT_CLI_PATH:-}")
-# find_executable (from common_utils.sh) will exit the script if transmission-remote is not found.
-
-log_debug_event "Torrent" "Using Transmission CLI: $TRANSMISSION_CLI_EXECUTABLE"
-
-# --- Add Magnet Link to Transmission ---
-log_user_progress "Torrent" "📡 Connecting to Transmission..."
-
-# Use an array for transmission-remote arguments for safety with special characters
-declare -a transmission_remote_args=() 
-transmission_remote_args[${#transmission_remote_args[@]}]="$TRANSMISSION_REMOTE_HOST" # Server address:port
-
-if [[ -n "$TRANSMISSION_REMOTE_AUTH" ]]; then # Expected format: "username:password", from jellymac_config.sh
-    transmission_remote_args[${#transmission_remote_args[@]}]="--auth"
-    transmission_remote_args[${#transmission_remote_args[@]}]="$TRANSMISSION_REMOTE_AUTH"
+if [[ -z "${STATE_DIR:-}" ]]; then
+    log_error_event "Torrent" "CRITICAL: STATE_DIR is not set. Cannot create temp files."
+    exit 1
 fi
 
-transmission_remote_args[${#transmission_remote_args[@]}]="--add"
-transmission_remote_args[${#transmission_remote_args[@]}]="$MAGNET_URL" # The magnet link itself
-# Crucially, ensure Transmission client is configured to download completed files to DROP_FOLDER.
-# This script does not specify a download directory, relying on Transmission's global settings.
+# Locate the transmission-remote executable
+TRANSMISSION_REMOTE_EXECUTABLE=$(find_executable "transmission-remote" "${TORRENT_CLIENT_CLI_PATH:-}")
 
-log_debug_event "Torrent" "Executing command: $TRANSMISSION_CLI_EXECUTABLE ${transmission_remote_args[*]}"
-
-# Capture stdout and stderr for better error reporting and success message parsing
-# These temp files are local to this script execution.
-TR_STDOUT_LOG_FILE=$(mktemp "${STATE_DIR}/.tr_stdout_magnet_handle.XXXXXX")
-_SCRIPT_TEMP_FILES_TO_CLEAN[${#_SCRIPT_TEMP_FILES_TO_CLEAN[@]}]="$TR_STDOUT_LOG_FILE"
-
-TR_STDERR_LOG_FILE=$(mktemp "${STATE_DIR}/.tr_stderr_magnet_handle.XXXXXX")
-_SCRIPT_TEMP_FILES_TO_CLEAN[${#_SCRIPT_TEMP_FILES_TO_CLEAN[@]}]="$TR_STDERR_LOG_FILE"
-
-set +e # Temporarily disable exit on error to capture return code and output
-"$TRANSMISSION_CLI_EXECUTABLE" "${transmission_remote_args[@]}" > "$TR_STDOUT_LOG_FILE" 2> "$TR_STDERR_LOG_FILE"
-TR_EXIT_CODE=$? # Capture exit code immediately
-set -e # Re-enable exit on error
-
-stdout_output=$(cat "$TR_STDOUT_LOG_FILE")
-stderr_output=$(cat "$TR_STDERR_LOG_FILE")
-# Temp files are cleaned by this script's EXIT trap
-
-if [[ $TR_EXIT_CODE -ne 0 ]]; then
-    # Check specifically for connection errors
-    if echo "$stdout_output$stderr_output" | grep -qE -i "connection refused|couldn't connect|failed to connect|connection timed out"; then
-        log_error_event "Torrent" "Failed to connect to Transmission daemon at ${TRANSMISSION_REMOTE_HOST:-localhost:9091}"
-        log_user_info "Torrent" "➡️ To start Transmission daemon: brew services start transmission"
-        log_user_info "Torrent" "➡️ To check daemon status: brew services info transmission" 
-        
-        # Show notification if enabled
-        if [[ "${ENABLE_DESKTOP_NOTIFICATIONS:-false}" == "true" && "$(uname)" == "Darwin" ]]; then
-            send_desktop_notification "Transmission Connection Error" "Transmission daemon is not running. Magnet link handling failed."
-        fi
-        
-        exit 1
-    else
-        # Format error message for other types of errors
-        error_message="Failed to add magnet link (Exit Code: $TR_EXIT_CODE)."
-        [[ -n "$stdout_output" ]] && error_message+=" Stdout: $stdout_output."
-        [[ -n "$stderr_output" ]] && error_message+=" Stderr: $stderr_output."
-
-        # Check for "duplicate torrent" or similar messages which we might treat as non-fatal
-        if echo "$stdout_output$stderr_output" | grep -qE -i "duplicate torrent|torrent is already there"; then
-            log_warn_event "Torrent" "Magnet link appears to be a duplicate in Transmission or already added. Message: '${stdout_output}${stderr_output}'"
-            # Successful outcome for the watcher, as the torrent is effectively "handled"
-        elif echo "$stdout_output$stderr_output" | grep -qE -i "torrent added"; then 
-            # Sometimes success message comes with non-zero code if there are other warnings
-            log_user_complete "Torrent" "🧲 Torrent added to queue (with warnings)"
-        else
-            log_error_event "Torrent" "$error_message"
-            exit 1
-        fi
-    fi
-else
-    log_user_complete "Torrent" "🧲 Torrent added to queue"
+if [[ -z "$TRANSMISSION_REMOTE_EXECUTABLE" ]]; then
+    log_error_event "Torrent" "CRITICAL: 'transmission-remote' executable not found."
+    log_error_event "Torrent" "Please install 'transmission-cli' (brew install transmission-cli) and check TORRENT_CLIENT_CLI_PATH in config."
+    exit 1
 fi
 
-# Record successful magnet addition to archive (prevent future duplicates)
+# Check for existence of download archive file if configured
 if [[ -n "${DOWNLOAD_ARCHIVE_MAGNET:-}" ]]; then
     archive_dir=$(dirname "$DOWNLOAD_ARCHIVE_MAGNET")
-    
-    # Ensure archive directory exists
     if [[ ! -d "$archive_dir" ]]; then
-        if mkdir -p "$archive_dir"; then
-            log_debug_event "Torrent" "Created magnet archive directory: $archive_dir"
+        if ! mkdir -p "$archive_dir"; then
+            log_warn_event "Torrent" "Failed to create archive directory: '$archive_dir'. Archive will not be used."
+            DOWNLOAD_ARCHIVE_MAGNET="" # Unset to prevent further errors
         else
-            log_warn_event "Torrent" "Failed to create magnet archive directory: $archive_dir. Archive will not be updated."
+            log_debug_event "Torrent" "Created directory for magnet download archive: $archive_dir"
         fi
+    fi
+fi
+
+# --- Main Logic ---
+
+#==============================================================================
+# CONSTRUCT TRANSMISSION-REMOTE COMMAND
+#==============================================================================
+# Build the command arguments array
+declare -a cmd_args=("$TRANSMISSION_REMOTE_HOST")
+
+# Add authentication if provided in the config
+if [[ -n "$TRANSMISSION_REMOTE_AUTH" ]]; then 
+    cmd_args+=("--auth" "$TRANSMISSION_REMOTE_AUTH")
+fi
+
+# Add the magnet URL
+cmd_args+=("--add" "$MAGNET_URL")
+
+#==============================================================================
+# PROCESS MAGNET LINK AND HANDLE DOWNLOAD ARCHIVE
+#==============================================================================
+log_user_progress "Torrent" "🧲 Processing magnet link..."
+
+# Extract magnet hash for archive checking (infohash)
+# This is a robust way to check for duplicates
+MAGNET_HASH=""
+if [[ "$MAGNET_URL" =~ xt=urn:btih:([^&]+) ]]; then
+    MAGNET_HASH="${BASH_REMATCH[1]}"
+    # Normalize to uppercase for consistency if needed, though most are already
+    MAGNET_HASH=$(echo "$MAGNET_HASH" | tr '[:lower:]' '[:upper:]' | cut -c 1-40)
+    log_debug_event "Torrent" "Extracted magnet hash: $MAGNET_HASH"
+else
+    log_warn_event "Torrent" "Could not extract magnet hash from URL. Duplicate check may be unreliable."
+fi
+
+# Prevent re-adding torrent if already in archive
+if [[ -n "$DOWNLOAD_ARCHIVE_MAGNET" && -n "$MAGNET_HASH" && -f "$DOWNLOAD_ARCHIVE_MAGNET" ]]; then
+    if grep -q "^magnet $MAGNET_HASH$" "$DOWNLOAD_ARCHIVE_MAGNET" 2>/dev/null; then
+        log_user_info "Torrent" "🔄 Magnet link already processed (found in archive). Skipping."
+        exit 0
+    fi
+fi
+
+#==============================================================================
+# EXECUTE COMMAND AND PROVIDE USER FEEDBACK
+#==============================================================================
+log_user_info "Torrent" "📡 Connecting to Transmission..."
+
+set +e # Temporarily disable exit on error to capture output
+transmission_output=$("$TRANSMISSION_REMOTE_EXECUTABLE" "${cmd_args[@]}" 2>&1)
+transmission_exit_code=$?
+set -e # Re-enable exit on error
+
+if [[ "$transmission_exit_code" -eq 0 && "$transmission_output" =~ "success" ]]; then
+    log_user_complete "Torrent" "🧲 Torrent added to queue"
+    log_user_info "Torrent" "📊 Track progress at: http://$TRANSMISSION_REMOTE_HOST/transmission/web/"
+    
+    # Record to history and archive
+    record_transfer_to_history "Magnet: ${MAGNET_HASH}" || log_warn_event "Torrent" "History record failed."
+    if [[ -n "$DOWNLOAD_ARCHIVE_MAGNET" && -n "$MAGNET_HASH" ]]; then
+        echo "magnet $MAGNET_HASH" >> "$DOWNLOAD_ARCHIVE_MAGNET"
+        log_debug_event "Torrent" "Recorded magnet hash to archive: $DOWNLOAD_ARCHIVE_MAGNET"
     fi
     
-    # Record the magnet hash in archive (if directory creation succeeded)
-    if [[ -d "$archive_dir" ]]; then
-        if echo "magnet $MAGNET_HASH" >> "$DOWNLOAD_ARCHIVE_MAGNET"; then
-            log_debug_event "Torrent" "Added magnet hash to archive: $MAGNET_HASH"
-        else
-            log_warn_event "Torrent" "Failed to write to magnet archive file: $DOWNLOAD_ARCHIVE_MAGNET"
-        fi
+    # Send desktop notification on success if enabled
+    if [[ "${ENABLE_DESKTOP_NOTIFICATIONS:-false}" == "true" ]]; then
+        send_desktop_notification "JellyMac: Torrent Added" "Sent to Transmission: ${MAGNET_HASH}"
     fi
+    
+    log_user_complete "Torrent" "✅ Magnet link processing completed successfully"
+    exit 0
 else
-    log_debug_event "Torrent" "DOWNLOAD_ARCHIVE_MAGNET not configured. Magnet hash not recorded for future duplicate prevention."
-fi
-
-# --- Post-Action ---
-# Record the successful transfer in history using common_utils.sh
-# This runs if exit code was 0, or if it was a non-fatal non-zero (like duplicate)
-history_log_entry="Magnet Added: ${MAGNET_URL:0:70}..."
-record_transfer_to_history "$history_log_entry" || log_warn_event "Torrent" "Failed to record Magnet link in history."
-
-# Notifications (macOS only)
-if [[ "$(uname)" == "Darwin" ]]; then
-    magnet_identifier="${MAGNET_URL:20:20}" # Get a short part of the hash for display
-    notification_text="Link for ...${magnet_identifier}... sent to Transmission."
-    safe_message=$(echo "$notification_text" | sed 's/\\/\\\\/g; s/"/\\"/g' | head -c 200)
-
-
-    if [[ "${ENABLE_DESKTOP_NOTIFICATIONS:-false}" == "true" ]]; then # From jellymac_config.sh
-      send_desktop_notification "JellyMac - Torrent" "$safe_message"
+    log_error_event "Torrent" "❌ Failed to add torrent."
+    log_error_event "Torrent" "Transmission-remote exit code: $transmission_exit_code"
+    log_error_event "Torrent" "Output: $transmission_output"
+    
+    # Send desktop notification on failure if enabled
+    if [[ "${ENABLE_DESKTOP_NOTIFICATIONS:-false}" == "true" ]]; then
+        send_desktop_notification "JellyMac: Torrent Error" "Failed to add: ${MAGNET_HASH}" "Basso"
     fi
+    
+    # Sound notification for error
+    play_sound_notification "task_error" "Torrent"
+    exit 1
 fi
-
-# Use the existing TRANSMISSION_REMOTE_HOST config for web interface URL
-log_user_info "Torrent" "📊 Track progress at: http://${TRANSMISSION_REMOTE_HOST}/transmission/web/"
-log_user_complete "Torrent" "✅ Magnet link processing completed successfully"
-exit 0 # Ensure successful exit if reached here (covers successful add and handled duplicates/warnings)

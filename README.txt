@@ -20,7 +20,7 @@ that works well with minimal setup!
 
 WHO THIS IS FOR
 ---------------
-• YouTube content collectors who want automatic download and organization
+• YouTube content collectors who want automatic downloads and organization
 • Jellyfin/Plex users who want media automatically integrated and synced
 • Technical users who appreciate clipboard-based workflows
 • Media enthusiasts who want clean, human-readable filenames
@@ -58,27 +58,35 @@ Media Server Integration:
 
 QUICKSTART GUIDE
 ----------------
-Step 1: Install Homebrew (if you don't have it)
+Step 1: Install Homebrew (if you don't have it) - visit: https://brew.sh for more info
+    
+(To open your Terminal, press (⌘ + space) and type "terminal" then hit return) 
+(then you can copy (⌘ + c) and paste (⌘ + v) the following commands into your terminal)
 
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 Step 2: Install and Start JellyMac
 
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/dev/install.sh)"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/main/install.sh)"
 
-That's it! JellyMac will start automatically and guide you through
-the interactive setup.
+That's it! JellyMac will start automatically and guide you through the interactive setup.
 
 For future use, to start JellyMac again:
 
     cd ~/JellyMac && ./jellymac.sh
 
-For detailed instructions, see the **Getting_Started.txt** guide.
+For more detailed installation and config instructions, see Getting_Started.txt
 
 ---
 
 IMPORTANT DISCLAIMERS
 ---------------------
+Security Note: Before running any script, it's a crucial security
+practice to review its contents. If you're not a developer, you can
+use an AI assistant (Gemini, ChatGPT, etc.) to analyze the script
+for you. This helps ensure the software is safe and does what it
+claims.
+
 Beta Software: JellyMac is in ongoing development. Always maintain
 backups of important media files.
 
@@ -92,17 +100,17 @@ consider supporting them. Your support genuinely matters.
 
 FOR DEVELOPERS AND ADVANCED USERS
 ---------------------------------
-JellyMac is highly configurable and extensible. For details:
+JellyMac is designed to be highly configurable and extensible.
+If you want to dive deeper, these resources are for you:
 
-• Configuration_Guide.txt: A detailed explanation of every
-  setting available in lib/jellymac_config.sh.
+• Configuration Guide: A detailed explanation of every setting available in 
+    Configuration.txt.
+• Arr Suite Handoff Guide: Instructions for integrating JellyMac with Sonarr and 
+    Radarr for advanced media management workflows.
 
-• Arr_Suite_Handoff_Guide.txt: Instructions for integrating
-  JellyMac with your existing Sonarr and Radarr setup.
-
-• Code Comments: The shell scripts in lib/ and bin/ are
-  extensively commented. Everything is Bash 3.2 compliant for
-  broader compatibility.
+• Code Comments: The shell scripts in lib/ and bin/ are extensively
+  commented to explain the logic and flow of the automation processes.
+  Everything is Bash 3.2 compliant for broader compatibility.
 
 ---
 

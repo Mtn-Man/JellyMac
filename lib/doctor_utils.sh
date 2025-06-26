@@ -4,7 +4,7 @@
 # Contains utility functions specific to the JellyMac.sh watcher script,
 # primarily for performing system health checks.
 # This script should be sourced by JellyMac.sh AFTER
-# logging_utils.sh, combined.conf.sh, and common_utils.sh
+# logging_utils.sh, config_parser.sh, and common_utils.sh
 # and SCRIPT_CURRENT_LOG_LEVEL is set.
 
 # Ensure logging_utils.sh is sourced, as this script may use log_*_event functions
@@ -166,19 +166,22 @@ enable_auto_install_and_install_deps() {
     
     log_user_info "$log_prefix" "Enabling automatic program installation..."
     
-    # Determine the directory of the currently executing script (doctor_utils.sh)
-    local script_dir
-    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-    local config_file="${script_dir}/jellymac_config.sh"
+    # The main jellymac.sh script must export JELLYMAC_PROJECT_ROOT for this to work.
+    if [[ -z "$JELLYMAC_PROJECT_ROOT" ]]; then
+        log_error_event "$log_prefix" "CRITICAL: JELLYMAC_PROJECT_ROOT is not set. Cannot find config file."
+        return 1
+    fi
+    local config_file="${JELLYMAC_PROJECT_ROOT}/Configuration.txt"
     
     log_user_info "$log_prefix" "Attempting to update config file: '$config_file'"
 
     if [[ -f "$config_file" && -w "$config_file" ]]; then
         # Create a backup of the config file first
         cp "$config_file" "${config_file}.bak"
-        log_user_info "$log_prefix" "Created backup of config file: '${config_file}.bak'"
+        log_debug_event "$log_prefix" "Created backup of config file: '${config_file}.bak'"
         
-        # Use macOS-compatible sed syntax with a more robust pattern
+        # Use macOS-compatible sed syntax to change 'false' to 'true'.
+        # This pattern handles potential whitespace around the equals sign.
         local sed_pattern='s/^[[:space:]]*AUTO_INSTALL_DEPENDENCIES[[:space:]]*=[[:space:]]*"false".*/AUTO_INSTALL_DEPENDENCIES="true"/'
         if [[ "$(uname)" == "Darwin" ]]; then
             sed -i '' "$sed_pattern" "$config_file"
@@ -189,11 +192,10 @@ enable_auto_install_and_install_deps() {
         
         # Verify that the change was successful
         if grep -q '^[[:space:]]*AUTO_INSTALL_DEPENDENCIES[[:space:]]*=[[:space:]]*"true"' "$config_file"; then
-            log_user_info "$log_prefix" "✅ Config updated: AUTO_INSTALL_DEPENDENCIES set to true in '$config_file'"
+            log_user_success "$log_prefix" "✅ Config updated: AUTO_INSTALL_DEPENDENCIES set to true."
         else
-            log_error_event "$log_prefix" "❌ Failed to verify update of AUTO_INSTALL_DEPENDENCIES to true in '$config_file'."
-            log_user_info "$log_prefix" "The line might not have matched or sed command failed. Original setting may persist."
-            # Attempt to proceed with installation as user intended to enable it.
+            log_error_event "$log_prefix" "❌ Failed to update AUTO_INSTALL_DEPENDENCIES in '$config_file'."
+            log_user_info "$log_prefix" "The script will proceed with installation for this session, but the setting was not saved."
         fi
         
         echo # For spacing in terminal output
@@ -205,16 +207,15 @@ enable_auto_install_and_install_deps() {
         
         if [[ $install_status -eq 0 ]]; then
             echo
-            echo -e "\033[32m✓\033[0m Successfully installed all programs!"
-            echo "JellyMac will now continue with startup..."
-            echo
-            echo "In the future, any missing programs will be installed automatically."
+            log_user_success "$log_prefix" "✅ Successfully installed all programs!"
+            log_user_info "$log_prefix" "JellyMac will now continue with startup..."
+            log_user_info "$log_prefix" "In the future, any missing programs will be installed automatically."
             sleep 2
         fi
         
         return $install_status
     else
-        log_user_info "$log_prefix" "❌ Could not update config file '$config_file'. File not found or not writable."
+        log_error_event "$log_prefix" "❌ Could not update config file '$config_file'. File not found or not writable."
         log_user_info "$log_prefix" "Please ensure '$config_file' exists, has write permissions, and then set AUTO_INSTALL_DEPENDENCIES=\"true\" manually."
         return 1
     fi
@@ -462,7 +463,7 @@ validate_config_filepaths() {
         
         if [[ -z "$dir" ]]; then
             log_error_event "$log_prefix" "❌ Required folder path is empty: $description"
-            log_user_info "$log_prefix" "Please set this path in your jellymac_config.sh file."
+            log_user_info "$log_prefix" "Please set this path in your Configuration.txt file."
             validation_failed=true
             continue
         fi

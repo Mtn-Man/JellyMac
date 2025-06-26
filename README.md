@@ -8,13 +8,13 @@ copy link → download video → clean name → intelligent sorting → library 
 
 All with zero additional user input. Just copy, done. Media is ready to stream.
 
-**Don't need all that?** Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup an any mac!
+**Don't need all that?** Jellymac is also a fully featured, free YouTube downloader, that works well with minimal setup on any mac!
 
 ---
 
 ## WHO THIS IS FOR
 
-**YouTube content collectors** who want automatic download and organization
+**YouTube content collectors** who want automatic downloads and organization
 
 **Jellyfin/Plex users** who want their media automatically integrated and synced with their library
 
@@ -75,6 +75,8 @@ All with zero additional user input. Just copy, done. Media is ready to stream.
 ### Step 1: Install Homebrew (for more info please visit [brew.sh](https://brew.sh))
 
 If you don't already have Homebrew, install it by running this command in your Terminal app:
+(To open your Terminal, press (⌘ + space) and type "terminal" then hit return) 
+(then you can copy (⌘ + c) and paste (⌘ + v) the following commands into your terminal)
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -84,8 +86,9 @@ If you don't already have Homebrew, install it by running this command in your T
 Run this command to download, set up, and automatically start JellyMac:
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/dev/install.sh)"
-```That's it! JellyMac will start automatically after installation and guide you through the interactive setup to configure your media folders and services.
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Mtn-Man/JellyMac/main/install.sh)"
+```
+That's it! JellyMac will start automatically after installation and guide you through the interactive setup to configure your media folders and services for seamless downloads.
 
 ### For Future Use
 
@@ -101,6 +104,8 @@ For detailed instructions and troubleshooting, see the **[Getting_Started.txt](G
 
 ## IMPORTANT DISCLAIMERS
 
+**Security Note:** Before running any script, it's a crucial security practice to review its contents. If you're not a developer, you can use an AI assistant (Gemini, ChatGPT, etc.) to analyze the script for you. This helps ensure the software is safe and does what it claims.
+
 **Beta Software:** JellyMac is still in ongoing development. Always maintain backups of important media files before use.
 
 **Legal Responsibility:** Use this tool only with media you have the legal right to access and manage. Ensure compliance with local laws and platform terms of service.
@@ -113,11 +118,10 @@ For detailed instructions and troubleshooting, see the **[Getting_Started.txt](G
 
 JellyMac is designed to be highly configurable and extensible. If you want to dive deeper, these resources are for you:
 
--   **[Configuration Guide](Configuration_guide.txt):** A detailed explanation of every setting available in `lib/jellymac_config.sh`.
-
--   **[Arr Suite Handoff Guide](Arr_Suite_Handoff_Guide.txt):** Instructions for integrating JellyMac with Sonarr and Radarr for advanced media management workflows.
-
--   **Code Comments:** The shell scripts in `lib/` and `bin/` are extensively commented to explain the logic and flow of the automation processes. Everything is Bash 3.2 compliant for broader compatibility.
+-   **[Quick Reference](Quick_Reference.txt):** Quick commands for advanced users.
+-   **[Configuration Guide](Configuration_Guide.txt):** A detailed explanation of every setting available in `Configuration.txt`.
+-   **[Arr Suite Handoff Guide](Arr_Suite_Handoff_Guide.txt):** A guide for integrating JellyMac with Sonarr, Radarr, etc.
+-   **[Getting Started](Getting_Started.txt):** A comprehensive guide for new users.
 
 ---
 

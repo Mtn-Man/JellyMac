@@ -2,26 +2,28 @@
 JellyMac Configuration Guide
 ==============================================================
 
-Welcome to the JellyMac configuration guide!
-This guide explains the settings available in the
-lib/jellymac_config.sh file. This file is crucial for
-customizing JellyMac to your specific setup and
-preferences.
+This guide provides a detailed explanation of every setting available in the
+`Configuration.txt` file. This file is crucial for customizing JellyMac to fit
+your specific setup, from local folders to network shares and media server
+integration.
 
-To configure JellyMac:
+How to Configure
+----------------
+When you first run JellyMac (`./jellymac.sh`), it will automatically check for
+`Configuration.txt` in the main project folder. If the configuration file is
+not found, the script will offer to create it for you from a template.
 
-Navigate to the lib directory within your JellyMac
-folder (e.g., cd ~/JellyMac/lib).
+You can then edit `Configuration.txt` using a text editor (like nano or
+TextEdit) to change the default settings.
 
-When you first run ./jellymac.sh from your main JellyMac folder, 
-it will automatically check for lib/jellymac_config.sh. If the configuration file is not found, 
-JellyMac will offer to create a default one for you by copying lib/jellymac_config.example.sh. 
+General Rules:
+- Edit the value on the right side of the equals sign, inside the quotes.
+- Do not change the variable names on the left side.
+- Lines beginning with '#' are comments and are ignored.
+- For file paths, you can use `$HOME` as a shortcut for your home directory
+  (e.g., `$HOME/Movies`). The script will automatically expand this.
 
-You can then edit lib/jellymac_config.sh using a text editor (like nano or TextEdit) 
-to customize the settings as described in this guide.
-
-When finished, save your changes and restart JellyMac for them
-to take effect.
+---
 
 General Tips for Configuration:
 
@@ -176,21 +178,27 @@ Control how media files are identified, cleaned, and handled.
 MAIN_MEDIA_EXTENSIONS
 Purpose: A list of file extensions that JellyMac 
 recognizes as primary video media files to be processed.
-Format: Array of strings, e.g., (".mkv" ".mp4")
+Format: Block format with one extension per line between
+BEGIN_MAIN_MEDIA_EXTENSIONS and END_MAIN_MEDIA_EXTENSIONS.
 Default: Includes common video formats like ".mkv",
 ".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm".
 Required: Yes. Ensure your common media file types are
 listed.
+Note: Each extension should be on its own line and start
+with a dot. Lines starting with # are treated as comments.
 
 ASSOCIATED_FILE_EXTENSIONS
 Purpose: A list of file extensions for files that should
 be processed alongside the main media file (e.g.,
 subtitles, NFO files). These files will be renamed to
 match the processed media file name and moved with it.
-Format: Array of strings, e.g., (".srt" ".nfo")
+Format: Block format with one extension per line between
+BEGIN_ASSOCIATED_FILE_EXTENSIONS and END_ASSOCIATED_FILE_EXTENSIONS.
 Default: Includes common subtitle formats (".srt", ".sub",
 ".ass", ".idx", ".vtt") and ".nfo" files.
 Optional: Yes. Add or remove extensions as needed.
+Note: Each extension should be on its own line and start
+with a dot. Lines starting with # are treated as comments.
 
 MEDIA_TAG_BLACKLIST
 Purpose: A list of tags (using regex patterns) to remove
@@ -427,7 +435,7 @@ quality and file size on modern Mac displays:
   - For 4K: "bv[height<=2160][vcodec=av1]+ba[acodec=aac]/best"
   - For 1080p: "bv[height<=1080][vcodec=av1]+ba[acodec=aac]/best"
   - For smallest files: "bv[height<=720][vcodec=av1]+ba[acodec=opus]/best"
-  - For Apple Silicon (M1/M2/M3): AV1 + Opus gives even
+  - For newer Apple Silicon macs (M3+): AV1 + Opus gives even
     smaller files, but only use if all your devices support these codecs.
   
 The square brackets [ and ] are used literally by

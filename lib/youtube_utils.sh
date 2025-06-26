@@ -69,7 +69,7 @@ _process_youtube_queue() {
     # Read all URLs into an array first, then process
     local queued_urls=()
     while IFS= read -r queued_url; do
-        [[ -n "$queued_url" ]] && queued_urls+=("$queued_url")
+        [[ -n "$queued_url" ]] && queued_urls[${#queued_urls[@]}]="$queued_url"
     done < "$queue_file"
     
     # Clear the queue file immediately to prevent new items affecting count
@@ -97,7 +97,7 @@ _process_youtube_queue() {
         _ACTIVE_YOUTUBE_URL="$queued_url"
         
         # Start the download process
-        "$HANDLE_YOUTUBE_SCRIPT" "$queued_url" &
+        "$HANDLE_YOUTUBE_SCRIPT" "$queued_url" "${YTDLP_OPTS[@]}" &
         local handler_pid=$!
         _ACTIVE_YOUTUBE_PID="$handler_pid"
         

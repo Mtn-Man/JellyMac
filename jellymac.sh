@@ -2,7 +2,7 @@
 #==============================================================================
 # JellyMac Watcher/jellymac.sh
 #==============================================================================
-# Main watcher script for JellyMac Media Automator.
+# Main orchestrator script for JellyMac Media Automator.
 #
 # Purpose:
 # - Monitors clipboard for YouTube links and magnet URLs
@@ -12,8 +12,8 @@
 # - Can fully automate the media acquisition pipeline for Jellyfin users (or Plex/Emby)
 #
 # Author: Eli Sher (Mtn_Man)
-# Version: v0.2.5
-# Last Updated: 2025-06-21
+# Version: v0.2.6
+# Last Updated: 2025-06-25
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
@@ -41,6 +41,7 @@ SCRIPT_DIR="$JELLYMAC_PROJECT_ROOT" # Alias for clarity
 
 # --- State Directory ---
 STATE_DIR="${SCRIPT_DIR}/.state" # For lock files, temporary scan files etc.
+export STATE_DIR
 
 # --- Source Essential Libraries (Order Matters) ---
 # 1. Logging Utilities (provides primitive log functions)
@@ -48,108 +49,91 @@ STATE_DIR="${SCRIPT_DIR}/.state" # For lock files, temporary scan files etc.
 # shellcheck disable=SC1091
 source "${SCRIPT_DIR}/lib/logging_utils.sh"
 
-# 2. Configuration Setup - Handle missing config file
-CONFIG_FILE_NAME="jellymac_config.sh"
-CONFIG_PATH="${SCRIPT_DIR}/lib/${CONFIG_FILE_NAME}"
-EXAMPLE_PATH="${SCRIPT_DIR}/lib/jellymac_config.example.sh"
+# 2. Configuration Setup - Handle missing config file and parse settings
+CONFIG_FILE_NAME="Configuration.txt"
+EXAMPLE_CONFIG_FILE_NAME="Configuration.example.txt"
 
-# Auto-setup configuration if needed
+CONFIG_PATH="${JELLYMAC_PROJECT_ROOT}/${CONFIG_FILE_NAME}"
+EXAMPLE_PATH="${JELLYMAC_PROJECT_ROOT}/${EXAMPLE_CONFIG_FILE_NAME}"
+
+# Auto-setup configuration if it doesn't exist
 if [[ ! -f "$CONFIG_PATH" ]]; then
     if [[ -f "$EXAMPLE_PATH" ]]; then
-        echo "                 Welcome to JellyMac!"
+        clear
+        echo
+        echo "                  Welcome to JellyMac 👋"
         echo ""
         echo "It looks like you haven't set up your configuration file yet."
-        echo ""
-        echo "Would you like to create a config file with default settings?"
-        echo "This will copy: jellymac_config.example.sh → jellymac_config.sh"
-        echo ""
+        echo
         
-        read -r -p "Create default config? (Y/n): " response
+        read -r -p "         Create default '${CONFIG_FILE_NAME}' from example? (Y/n): " response
         
         case "$(echo "$response" | tr '[:upper:]' '[:lower:]')" in
             ""|y|yes)
                 if cp "$EXAMPLE_PATH" "$CONFIG_PATH"; then
-                    echo "✅ Created jellymac_config.sh with default settings."
-                    echo ""
-                    echo "Would you like to:"
-                    echo "  1) Open the config file now to customize your library paths"
-                    echo "  2) Continue with the default local setup (~/Movies/Movies, ~/Movies/Shows, etc.)"
-                    echo ""
+                    echo "✅ Created '$CONFIG_FILE_NAME' in your project folder."
+                    echo "You can edit this file at any time to customize your paths."
+                    echo
                     
-                    read -r -p "Choose option [1-2] (2): " config_choice
-                    
-                    case "$(echo "${config_choice:-2}" | tr '[:upper:]' '[:lower:]')" in
-                        1|one)
-                            echo ""
-                            echo "Opening config file in TextEdit..."
-                            echo "After saving your changes, run ./jellymac.sh again to start with your custom settings."
-                            echo ""
-                            
-                            open -a TextEdit "$CONFIG_PATH"
-                            
-                            echo "Config file opened! Edit your paths and save, then restart JellyMac: cd $SCRIPT_DIR && ./jellymac.sh"
+                    read -r -p "Customize settings now? (y/N): " open_choice
+                    case "$(echo "$open_choice" | tr '[:upper:]' '[:lower:]')" in
+                        y|yes)
+                            echo "Please edit the file, save your changes, and then run ./jellymac.sh again."
+                            # Use 'open' on macOS, 'xdg-open' on Linux if available, fallback to message
+                            if command -v open >/dev/null 2>&1; then
+                                open "$CONFIG_PATH"
+                            elif command -v xdg-open >/dev/null 2>&1; then
+                                xdg-open "$CONFIG_PATH"
+                            else
+                                echo "Could not open file automatically. Please open '$CONFIG_PATH' manually."
+                            fi
                             exit 0
                             ;;
-                        ""|2|two)
-                            echo "Continuing with default local setup..."
-                            echo "You can edit lib/jellymac_config.sh later if needed."
-                            echo "To edit:" 
-                            echo "   1. Navigate to the lib folder inside your JellyMac directory (e.g., cd $SCRIPT_DIR/lib)"
-                            echo "   2. Open lib/jellymac_config.sh with a text editor (e.g., nano, TextEdit)"
-                            echo "   3. Key paths to update include:"
-                            echo "      - DROP_FOLDER (where new media files are dropped)"
-                            echo "      - DEST_DIR_MOVIES (your Movies library folder)"
-                            echo "      - DEST_DIR_SHOWS (your Shows library folder)"
-                            echo "      - LOCAL_DIR_YOUTUBE (your YouTube library folder)"
-                            echo ""
-                            echo "   Refer to Getting_Started.txt or Configuration_Guide.txt for details on all options."
-                            echo ""
-                            echo "   4. Save the file. JellyMac will use these new settings the next time it runs or processes media"
-                            echo ""
-                            ;;
                         *)
-                            echo "Invalid selection. Continuing with default local setup..."
-                            echo ""
+                            echo "Continuing with default settings..."
+                            echo
                             ;;
                     esac
                 else
-                    log_error_event "JELLYMAC_SETUP" "❌ Failed to create config file. Check permissions."
+                    echo "❌ Failed to create config file. Check permissions." >&2
                     exit 1
                 fi
                 ;;
             n|no)
-                echo "Setup cancelled. Please create config manually:"
-                echo "   cd lib && cp jellymac_config.example.sh jellymac_config.sh"
+                echo "Setup cancelled. Please create '$CONFIG_FILE_NAME' manually and restart." >&2
                 exit 1
                 ;;
             *)
-                echo "Invalid response. Please enter 'yes' or 'no'."
-                echo "Setup cancelled. Please create config manually:"
-                echo "   cd lib && cp jellymac_config.example.sh jellymac_config.sh"
+                echo "Invalid response. Setup cancelled." >&2
                 exit 1
                 ;;
         esac
     else
-        log_error_event "JELLYMAC_SETUP" "CRITICAL: Neither config file nor example found!"
-        log_error_event "JELLYMAC_SETUP" "Expected files:"
-        log_error_event "JELLYMAC_SETUP" "  - ${CONFIG_PATH}"
-        log_error_event "JELLYMAC_SETUP" "  - ${EXAMPLE_PATH}"
-        log_error_event "JELLYMAC_SETUP" "Please ensure JellyMac is properly installed."
+        echo "CRITICAL: Example config '$EXAMPLE_CONFIG_FILE_NAME' not found in project root!" >&2
+        echo "Please ensure JellyMac is properly installed." >&2
         exit 1
     fi
 fi
 
-# Now source the config (either existing or newly created)
-if [[ -f "$CONFIG_PATH" ]]; then
-    # shellcheck source=lib/jellymac_config.sh
-    # shellcheck disable=SC1091
-    source "$CONFIG_PATH"
-else
-    log_error_event "JELLYMAC_SETUP" "CRITICAL: Config file still missing after setup attempt."
+# 3. Source the new config parser and load settings
+PARSER_LIB_PATH="${SCRIPT_DIR}/lib/parsing_utils.sh"
+if [[ ! -f "$PARSER_LIB_PATH" ]]; then
+    log_error_event "JellyMacSetup" "CRITICAL: Config parser library not found at '$PARSER_LIB_PATH'."
     exit 1
 fi
 
-# 3. Initialize SCRIPT_CURRENT_LOG_LEVEL (based on LOG_LEVEL from config)
+# shellcheck source=lib/parsing_utils.sh
+# shellcheck disable=SC1091
+source "$PARSER_LIB_PATH"
+
+# Call the parser function to read the config and export variables.
+# The YTDLP_OPTS array will be populated in this script's scope.
+if ! _parse_and_export_config "$CONFIG_PATH"; then
+    log_error_event "JellyMacSetup" "CRITICAL: Failed to parse configuration file '$CONFIG_PATH'. Check for errors in the file."
+    exit 1
+fi
+
+# 4. Initialize SCRIPT_CURRENT_LOG_LEVEL (based on LOG_LEVEL from config)
 case "$(echo "${LOG_LEVEL:-INFO}" | tr '[:lower:]' '[:upper:]')" in
     "DEBUG") SCRIPT_CURRENT_LOG_LEVEL=$LOG_LEVEL_DEBUG ;;
     "INFO")  SCRIPT_CURRENT_LOG_LEVEL=$LOG_LEVEL_INFO ;;
@@ -164,7 +148,7 @@ esac
 export SCRIPT_CURRENT_LOG_LEVEL
 
 # Export other logging-related config variables for subshells (e.g., bin/ scripts)
-# These are read from jellymac_config.sh and used by exported logging functions.
+# These are read from Configuration.txt and used by exported logging functions.
 export LOG_ROTATION_ENABLED
 export LOG_DIR
 export LOG_FILE_BASENAME
@@ -969,7 +953,7 @@ _check_clipboard_youtube() {
                 local background_loop_pid=$!
                 
                 # Process YouTube in foreground with full output visibility
-                "$HANDLE_YOUTUBE_SCRIPT" "$trimmed_cb" &
+                "$HANDLE_YOUTUBE_SCRIPT" "$trimmed_cb" "${YTDLP_OPTS[@]}" &
                 _ACTIVE_YOUTUBE_PID=$!
 
                 if wait "$_ACTIVE_YOUTUBE_PID"; then
@@ -1109,7 +1093,7 @@ process_drop_folder() {
             log_debug_event "JellyMac" "Item '$item_basename' (DROP_FOLDER) already processing. Skipping."; continue
         fi
 
-        log_debug_event "JellyMac" "Checking stability for an item in your Drop Folder: '$item_basename'"
+        log_user_info "JellyMac" "Checking stability for a detected file in your Drop Folder before processing: '$item_basename'"
         if ! wait_for_file_stability "$item_path" "${STABLE_CHECKS_DROP_FOLDER:-3}" "${STABLE_SLEEP_INTERVAL_DROP_FOLDER:-10}"; then
             log_debug_event "JellyMac" "Item '$item_basename' (DROP_FOLDER) not stable. Will re-check next cycle."; continue
         fi
@@ -1156,7 +1140,7 @@ process_drop_folder() {
             _ACTIVE_PROCESSOR_INFO_STRING="${_ACTIVE_PROCESSOR_INFO_STRING}${child_pid}|||${PROCESS_MEDIA_ITEM_SCRIPT}|||${item_path}|||${ts_launch}"
             
             log_user_info "JellyMac" "🚀 Launched Media Processor (PID $child_pid). Active processors: $((p_count+1))."
-            send_desktop_notification "JellyMac: Processing" "Item: ${item_basename:0:60}..."
+            # send_desktop_notification "JellyMac: Processing" "Item: ${item_basename:0:60}..."
             items_processed=$((items_processed + 1))
             
             # Start caffeinate for media processing
@@ -1217,7 +1201,7 @@ _acquire_lock  # Ensure only one instance of JellyMac runs at a time
 show_startup_banner  # Call the startup banner function if enabled
 
 log_user_info "JellyMac" "🚀 JellyMac Starting..."
-log_user_info "JellyMac" "Version: v0.2.5 ($(date +%Y-%m-%d))"
+log_user_info "JellyMac" "Version: v0.2.6 ($(date +%Y-%m-%d))"
 log_user_info "JellyMac" "JellyMac location: $JELLYMAC_PROJECT_ROOT"
 log_debug_event "JellyMac" "   Log Level: ${LOG_LEVEL:-INFO} (Effective Syslog Level: $SCRIPT_CURRENT_LOG_LEVEL)"
 if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" && -n "$CURRENT_LOG_FILE_PATH" ]]; then
@@ -1242,7 +1226,7 @@ log_debug_event "JellyMac" "Verifying feature-specific directory configurations.
 # Check LOCAL_DIR_YOUTUBE: Critical if YouTube features are enabled.
 if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
     if [[ -z "${LOCAL_DIR_YOUTUBE:-}" ]]; then
-        log_error_event "JellyMac" "CRITICAL: LOCAL_DIR_YOUTUBE is not configured in lib/jellymac_config.sh but YouTube features are enabled. Exiting."
+        log_error_event "JellyMac" "CRITICAL: LOCAL_DIR_YOUTUBE is not configured in 'Configuration.txt' but YouTube features are enabled. Exiting."
         exit 1
     elif [[ ! -d "$LOCAL_DIR_YOUTUBE" ]]; then
         log_warn_event "JellyMac" "LOCAL_DIR_YOUTUBE ('$LOCAL_DIR_YOUTUBE') does not exist. Attempting to create."
@@ -1259,7 +1243,7 @@ if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
 
     # Also ensure DEST_DIR_YOUTUBE is configured if YouTube features are on.
     if [[ -z "${DEST_DIR_YOUTUBE:-}" ]]; then
-        log_error_event "JellyMac" "CRITICAL: DEST_DIR_YOUTUBE is not configured in lib/jellymac_config.sh but YouTube features are enabled. Exiting."
+        log_error_event "JellyMac" "CRITICAL: DEST_DIR_YOUTUBE is not configured in 'Configuration.txt' but YouTube features are enabled. Exiting."
     else
         log_debug_event "JellyMac" "✅ DEST_DIR_YOUTUBE ('$DEST_DIR_YOUTUBE') is configured for YouTube features (accessibility checked by doctor_utils.sh)."
     fi
@@ -1268,7 +1252,7 @@ fi
 # Check LOG_DIR: Critical if file logging is enabled.
 if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" ]]; then
     if [[ -z "${LOG_DIR:-}" ]]; then
-        log_error_event "JellyMac" "CRITICAL: LOG_DIR is not configured in lib/jellymac_config.sh but LOG_ROTATION_ENABLED is true. Exiting."
+        log_error_event "JellyMac" "CRITICAL: LOG_DIR is not configured in 'Configuration.txt' but LOG_ROTATION_ENABLED is true. Exiting."
     else
         log_debug_event "JellyMac" "✅ LOG_DIR ('$LOG_DIR') is configured for rotated logs (creation/writability handled by logging system)."
     fi
@@ -1306,7 +1290,7 @@ fi
 
 # --- Log Configuration Summary ---
 log_user_info "JellyMac" ""
-log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.5) ---"
+log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.6) ---"
 log_user_info "JellyMac" "   Check Interval: ${MAIN_LOOP_SLEEP_INTERVAL:-2}s | Max Processors: ${MAX_CONCURRENT_PROCESSORS:-2}"
 log_user_info "JellyMac" ""
 log_user_info "JellyMac" "  Media Destinations:"
@@ -1340,7 +1324,7 @@ if [[ "${ENABLE_CLIPBOARD_YOUTUBE:-false}" == "true" ]]; then
     check_and_resume_youtube_queue
 fi
 
-log_user_status "JellyMac" "🔄 JellyMac is ready! Watching for new links or media every ${MAIN_LOOP_SLEEP_INTERVAL:-2} seconds..."
+log_user_status "JellyMac" "🔄 JellyMac is ready! Checking for any new links and files every ${MAIN_LOOP_SLEEP_INTERVAL:-2} second(s)..."
 log_user_status "JellyMac" "(Press Ctrl+C to exit any time)"
 while true; do
     manage_active_processors    

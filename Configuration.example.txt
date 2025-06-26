@@ -1,0 +1,159 @@
+################################################################################
+#                                                                              #
+#                      JellyMac Configuration File                             #
+#                                                                              #
+################################################################################
+#
+# INSTRUCTIONS:
+# - Edit the values inside the double quotes "" on the right side of the equals sign.
+# - Do not change the setting names on the left (e.g., DROP_FOLDER).
+# - Lines starting with a '#' are comments and are ignored by the script.
+# - For paths, you can use '$HOME' to refer to your home directory.
+# - For paths relative to JellyMac folder, use '$JELLYMAC_ROOT' (e.g., '$JELLYMAC_ROOT/logs').
+#
+################################################################################
+# QUICK START - Configure these essential paths first
+################################################################################
+
+# === REQUIRED PATHS ===
+# These paths are essential for JellyMac to function properly.
+
+DROP_FOLDER="$HOME/Downloads/JellyDrop"
+ERROR_DIR="$JELLYMAC_ROOT/_error_quarantine_files"
+
+# === MEDIA LIBRARY DESTINATIONS ===
+# Your final library locations. If using a network share, use its path.
+# Example for a network drive: "/Volumes/Media/Movies"
+
+DEST_DIR_MOVIES="$HOME/Movies/Movies"
+DEST_DIR_SHOWS="$HOME/Movies/Shows"
+DEST_DIR_YOUTUBE="$HOME/Movies/YouTube"
+
+# === TEMPORARY STORAGE ===
+LOCAL_DIR_YOUTUBE="$JELLYMAC_ROOT/_temp_youtube"
+
+################################################################################
+# CORE FEATURES - Enable/disable main functionality
+################################################################################
+
+ENABLE_TORRENT_AUTOMATION="true"
+ENABLE_CLIPBOARD_MAGNET="true"
+ENABLE_CLIPBOARD_YOUTUBE="true"
+SHOW_STARTUP_BANNER="true"
+
+################################################################################
+# JELLYFIN INTEGRATION (Optional - leave blank to disable)
+################################################################################
+# Example: "http://localhost:8096" or "http://192.168.0.100:8096"
+
+JELLYFIN_SERVER="http://your-jellyfin-server-ip:8096"
+JELLYFIN_API_KEY="your-jellyfin-api-key-here"
+
+# Auto-scan libraries after adding media:
+ENABLE_JELLYFIN_SCAN_MOVIES="false"
+ENABLE_JELLYFIN_SCAN_SHOWS="false"
+ENABLE_JELLYFIN_SCAN_YOUTUBE="false"
+
+################################################################################
+# ADVANCED CONFIGURATION (Works well with defaults)
+################################################################################
+
+# === SYSTEM SETTINGS ===
+AUTO_INSTALL_DEPENDENCIES="false"
+AUTO_CREATE_MISSING_DIRS="true"
+MAIN_LOOP_SLEEP_INTERVAL="1"
+MAX_CONCURRENT_PROCESSORS="2"
+
+# === USER INTERFACE ===
+ENABLE_DESKTOP_NOTIFICATIONS="true"
+SOUND_NOTIFICATION="true"
+SOUND_INPUT_DETECTED_FILE="/System/Library/Sounds/Funk.aiff"
+SOUND_TASK_SUCCESS_FILE="/System/Library/Sounds/Glass.aiff"
+SOUND_TASK_ERROR_FILE="/System/Library/Sounds/Basso.aiff"
+
+# === LOGGING & HISTORY ===
+LOG_LEVEL="INFO"
+LOG_DIR="$JELLYMAC_ROOT/logs"
+LOG_FILE_BASENAME="jellymac_log"
+LOG_ROTATION_ENABLED="true"
+LOG_RETENTION_DAYS="7"
+HISTORY_FILE="$JELLYMAC_ROOT/.jellymac_history.log"
+
+# === YOUTUBE PROCESSING ===
+DOWNLOAD_ARCHIVE_YOUTUBE="$JELLYMAC_ROOT/.yt_download_archive.txt"
+COOKIES_ENABLED="false"
+COOKIES_FILE="/path/to/your/cookies.txt"
+YOUTUBE_CREATE_SUBFOLDER_PER_VIDEO="false"
+
+# Video quality preference. Default is 1440p for a balance of quality and file size.
+YTDLP_FORMAT="bv[height<=1440][vcodec=vp9]+ba[acodec=aac]/bv[height<=1440][vcodec=vp9]+ba/bv[height<=1080][vcodec=vp9]+ba/best"
+
+# For Apple Silicon Macs (M3 and newer) with AV1 hardware support, you can the AV1 codec for even smaller file sizes:
+#Change "vcodec=vp9" above to "vcodec=av1"
+
+# --- Advanced YouTube Downloader Options ---
+# Add or remove lines between BEGIN and END below to customize yt-dlp arguments.
+# Do NOT use quotes. Each line is one setting.
+# See https://github.com/yt-dlp/yt-dlp#usage-and-options for a full list of available options.
+BEGIN_YTDLP_OPTS
+--no-playlist
+--merge-output-format mp4
+--embed-metadata
+--embed-thumbnail
+# <- remove the hash marks on the following lines to enable these additional options if desired
+# --sponsorblock-remove all
+# --write-subs
+# --sub-langs "en.*,en,es"
+# --write-auto-subs
+# --convert-subs srt
+# --ppa "EmbedSubtitle"
+END_YTDLP_OPTS
+
+# === MEDIA PROCESSING ===
+# --- Main Media File Extensions ---
+# Add or remove lines between BEGIN and END below to specify which file extensions
+# JellyMac should recognize as primary video media files.
+# Each line should be one extension starting with a dot.
+BEGIN_MAIN_MEDIA_EXTENSIONS
+.mkv
+.mp4
+.avi
+.mov
+.wmv
+.flv
+.webm
+END_MAIN_MEDIA_EXTENSIONS
+
+# --- Associated File Extensions ---
+# Add or remove lines between BEGIN and END below to specify which file extensions
+# should be processed alongside the main media file (e.g., subtitles, NFO files).
+# Each line should be one extension starting with a dot.
+BEGIN_ASSOCIATED_FILE_EXTENSIONS
+.srt
+.sub
+.ass
+.idx
+.vtt
+.nfo
+END_ASSOCIATED_FILE_EXTENSIONS
+
+# Tags to be removed from filenames during cleanup.
+# Add or remove tags separated by a pipe character | Do not use spaces.
+# All tags are case-insensitive.
+MEDIA_TAG_BLACKLIST="2160p|1080p|720p|480p|web[- ]?dl|webrip|bluray|brrip|hdrip|ddp5?\\.1|aac|ac3|x265|x264|hevc|h\\.264|h\\.265|remux|neonoir|sdrip|re-encoded"
+
+# === FILE TRANSFER & CLEANUP ===
+PERFORM_POST_TRANSFER_DELETE="true"
+POST_TRANSFER_DELETE_DELAY="30"
+RSYNC_TIMEOUT="600"
+
+# File Stability Detection (prevents processing incomplete downloads)
+STABLE_CHECKS_DROP_FOLDER="3"
+STABLE_SLEEP_INTERVAL_DROP_FOLDER="7"
+
+# === TORRENT AUTOMATION ===
+TORRENT_CLIENT_CLI_PATH="/opt/homebrew/bin/transmission-remote"
+TRANSMISSION_REMOTE_HOST="localhost:9091"
+TRANSMISSION_REMOTE_AUTH=""
+TRANSMISSION_AUTO_CLEANUP="true"
+DOWNLOAD_ARCHIVE_MAGNET="$JELLYMAC_ROOT/.magnet_download_archive.txt"

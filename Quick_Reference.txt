@@ -75,3 +75,14 @@ COMMON FIXES
   Edit lib/jellymac_config.sh and set:
   AUTO_INSTALL_DEPENDENCIES="true"
   (Requires Homebrew installed)
+
+-   **Run the setup wizard:**
+    -   `./jellymac.sh`
+    -   The script will guide you through creating `Configuration.txt` and installing dependencies if it's your first time.
+
+-   **Edit your configuration:**
+    -   Open `Configuration.txt` in a text editor.
+    -   Key settings to change: `DROP_FOLDER`, `DEST_DIR_MOVIES`, `DEST_DIR_SHOWS`, `JELLYFIN_API_KEY`.
+
+-   **Start JellyMac:**
+    -   `./jellymac.sh`
