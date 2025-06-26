@@ -55,6 +55,43 @@ source "${LIB_DIR}/logging_utils.sh"
 # shellcheck disable=SC1091
 source "${LIB_DIR}/common_utils.sh" # For find_executable, record_transfer_to_history, play_sound_notification
 
+# --- Configuration Loading ---
+# This script is designed to inherit its configuration from the main jellymac.sh
+# script. The following block allows for standalone execution (e.g., for testing)
+# by loading the configuration if it hasn't been loaded already.
+# We check for JELLYMAC_PROJECT_ROOT, which is a reliable indicator.
+if [[ -z "${JELLYMAC_PROJECT_ROOT:-}" ]]; then
+    export JELLYMAC_PROJECT_ROOT
+    JELLYMAC_PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." >/dev/null 2>&1 && pwd)"
+    
+    # shellcheck source=../lib/parsing_utils.sh
+    # shellcheck disable=SC1091
+    source "${LIB_DIR}/parsing_utils.sh"
+    
+    CONFIG_PATH="${JELLYMAC_PROJECT_ROOT}/Configuration.txt"
+    if [[ ! -f "$CONFIG_PATH" ]]; then
+        log_error_event "Torrent" "CRITICAL: Configuration.txt not found for standalone execution."
+        exit 1
+    fi
+    
+    _parse_and_export_config "$CONFIG_PATH"
+
+    # Initialize logging variables for standalone execution
+    # These are normally set by jellymac.sh
+    # shellcheck disable=SC2034
+    LAST_LOG_DATE_CHECKED=""
+    # shellcheck disable=SC2034
+    CURRENT_LOG_FILE_PATH=""
+    case "$(echo "${LOG_LEVEL:-INFO}" | tr '[:lower:]' '[:upper:]')" in
+        "DEBUG") SCRIPT_CURRENT_LOG_LEVEL=4 ;;
+        "INFO")  SCRIPT_CURRENT_LOG_LEVEL=3 ;;
+        "WARN")  SCRIPT_CURRENT_LOG_LEVEL=2 ;;
+        "ERROR") SCRIPT_CURRENT_LOG_LEVEL=1 ;;
+        *)       SCRIPT_CURRENT_LOG_LEVEL=3 ;;
+    esac
+    export SCRIPT_CURRENT_LOG_LEVEL
+fi
+
 # --- Log Level & Prefix Initialization ---
 # The SCRIPT_CURRENT_LOG_LEVEL (and _log_to_current_file function) will be inherited from the parent (jellymac.sh)
 

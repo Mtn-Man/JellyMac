@@ -186,6 +186,8 @@ PROCESS_MEDIA_ITEM_SCRIPT="${SCRIPT_DIR}/bin/process_media_item.sh"
 _WATCHER_LOG_PREFIX="JellyMac" # This is the unique prefix for jellymac.sh logs
 CURRENT_LOG_FILE_PATH=""       # Path to the current log file
 LAST_LOG_DATE_CHECKED=""       # Used to track if we need to create a new log file
+export CURRENT_LOG_FILE_PATH
+export LAST_LOG_DATE_CHECKED
 
 #==============================================================================
 # LOG FILE MANAGEMENT FUNCTIONS
