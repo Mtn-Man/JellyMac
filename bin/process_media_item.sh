@@ -616,6 +616,12 @@ fi
 if [[ "$PROCESSOR_EXIT_CODE" -eq 0 ]]; then
     # Only perform final cleanup if all primary processing was successful (not quarantined or errored before this point)
     _processor_final_drop_folder_cleanup
+    
+    # Clean up completed torrents after successful media processing
+    if command -v cleanup_completed_torrents >/dev/null 2>&1; then
+        log_debug_event "Processing" "🧹 Triggering torrent cleanup after successful media processing..."
+        cleanup_completed_torrents
+    fi
 fi
 # ================================================================= #
 

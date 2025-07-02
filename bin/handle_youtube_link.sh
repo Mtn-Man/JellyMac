@@ -350,7 +350,7 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
                 log_warn_event "YouTube" "   Possible workarounds:"
                 log_warn_event "YouTube" "   1. Try again later - YouTube sometimes rotates video delivery methods"
                 log_warn_event "YouTube" "   2. Try an alternative URL for this video (e.g., mobile or YouTube Music URL)"
-                log_warn_event "YouTube" "   3. Upgrade yt-dlp: brew upgrade yt-dlp"
+                log_warn_event "YouTube" "   3. Update yt-dlp: brew update && brew upgrade yt-dlp"
                 log_warn_event "YouTube" ""
                 log_warn_event "YouTube" "   This is a known limitation with YouTube's new streaming format and not a JellyMac issue."
                 log_warn_event "YouTube" "   For more details see: https://github.com/yt-dlp/yt-dlp/issues/12482"
@@ -364,6 +364,42 @@ if [[ "$YTDLP_EXIT_CODE" -ne 0 ]] && \
                 fi
             fi
         fi
+    fi
+fi
+
+# After SABR retry fails, auto-update yt-dlp and retry once more
+if [[ "$YTDLP_EXIT_CODE" -ne 0 ]]; then
+    log_user_info "YouTube" "🔄 Download failed. Updating yt-dlp and retrying..."
+    
+    # Update yt-dlp
+    if brew update && brew upgrade yt-dlp; then
+        log_user_info "YouTube" "✅ yt-dlp updated successfully. Retrying download..."
+        
+        # Re-find yt-dlp executable in case path changed
+        YTDLP_EXECUTABLE=$(find_executable "yt-dlp" "${YTDLP_PATH:-}")
+        
+        # Final retry with updated yt-dlp using original arguments
+        log_debug_event "YouTube" "Final retry with updated yt-dlp: $YTDLP_EXECUTABLE ${ytdlp_command_args[*]}"
+        
+        set +e
+        "$YTDLP_EXECUTABLE" "${ytdlp_command_args[@]}" \
+            2> >(tee "$YTDLP_STDERR_CAPTURE_FILE" >&2) \
+            | tee "$YTDLP_STDOUT_CAPTURE_FILE"
+        
+        YTDLP_EXIT_CODE=${PIPESTATUS[0]}
+        _tee_stdout_ec=${PIPESTATUS[1]}
+        set -e
+        
+        ytdlp_stdout_content=$(<"$YTDLP_STDOUT_CAPTURE_FILE")
+        ytdlp_stderr_content=$(<"$YTDLP_STDERR_CAPTURE_FILE")
+        
+        if [[ "$YTDLP_EXIT_CODE" -eq 0 ]]; then
+            log_user_success "YouTube" "✅ Download successful after yt-dlp update!"
+        else
+            log_warn_event "YouTube" "❌ Download still failed after yt-dlp update. Exit code: $YTDLP_EXIT_CODE"
+        fi
+    else
+        log_warn_event "YouTube" "❌ Failed to update yt-dlp. Cannot retry download."
     fi
 fi
 
@@ -382,8 +418,61 @@ if [[ "$YTDLP_EXIT_CODE" -eq 0 ]] || \
     # Check if video was already processed (archive hit)
     if (grep -q -i "already been recorded in the archive" <<< "$ytdlp_stderr_content" || grep -q -i "already been recorded in the archive" <<< "$ytdlp_stdout_content"); then
         log_debug_event "YouTube" "yt-dlp (exit $YTDLP_EXIT_CODE) indicated video is already in archive. Stdout: [$ytdlp_stdout_content] Stderr: [$ytdlp_stderr_content]"
-        log_user_info "YouTube" "Video already processed and available. Skipping to avoid re-processing."
-        exit 0 
+        
+        # CRITICAL FIX: Verify the file actually exists before treating as successful
+        # Extract video title from URL to check if file exists in destination
+        video_title=""
+        case "$YOUTUBE_URL" in
+            *"watch?v="*)
+                # Try to extract title from yt-dlp output if available
+                if [[ -n "$ytdlp_stdout_content" ]]; then
+                    video_title=$(echo "$ytdlp_stdout_content" | grep -o "\[download\] Destination: .*" | head -1 | sed 's/\[download\] Destination: //')
+                fi
+                ;;
+        esac
+        
+        # If we can't get the title from output, try to find any video file in destination
+        if [[ -z "$video_title" ]]; then
+            log_debug_event "YouTube" "Could not extract video title from yt-dlp output. Checking if any video file exists in destination."
+            # Look for any video file in the destination directory
+            found_video_file=""
+            if [[ -d "$DEST_DIR_YOUTUBE" ]]; then
+                found_video_file=$(find "$DEST_DIR_YOUTUBE" -maxdepth 2 -type f \( -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.webm" \) -newer "$LOCAL_DIR_YOUTUBE" 2>/dev/null | head -1)
+            fi
+            
+            if [[ -n "$found_video_file" && -f "$found_video_file" ]]; then
+                log_user_info "YouTube" "✅ Found existing video file in destination: $(basename "$found_video_file")"
+                log_user_info "YouTube" "Video already processed and available. Skipping to avoid re-processing."
+                exit 0
+            else
+                log_warn_event "YouTube" "⚠️ Archive entry found but no video file exists in destination. Removing archive entry to allow retry."
+                # Remove from archive to allow retry
+                if [[ -n "$DOWNLOAD_ARCHIVE_YOUTUBE" && -f "$DOWNLOAD_ARCHIVE_YOUTUBE" ]]; then
+                    video_id=""
+                    case "$YOUTUBE_URL" in
+                        *"watch?v="*)
+                            video_id="${YOUTUBE_URL#*watch?v=}"
+                            video_id="${video_id%%&*}"
+                            ;;
+                        *"youtu.be/"*)
+                            video_id="${YOUTUBE_URL#*youtu.be/}"
+                            video_id="${video_id%%\?*}"
+                            ;;
+                    esac
+                    
+                    if [[ -n "$video_id" ]]; then
+                        log_debug_event "YouTube" "Removing video ID $video_id from archive to allow retry"
+                        cp "$DOWNLOAD_ARCHIVE_YOUTUBE" "$DOWNLOAD_ARCHIVE_YOUTUBE.bak"
+                        grep -v "youtube $video_id" "$DOWNLOAD_ARCHIVE_YOUTUBE.bak" > "$DOWNLOAD_ARCHIVE_YOUTUBE"
+                        log_debug_event "YouTube" "Removed $video_id from archive - will retry download"
+                    fi
+                fi
+                # Continue with normal download process instead of exiting
+            fi
+        else
+            log_user_info "YouTube" "Video already processed and available. Skipping to avoid re-processing."
+            exit 0
+        fi
     fi
     
     if [[ "$YTDLP_EXIT_CODE" -eq 101 ]]; then 
@@ -430,8 +519,43 @@ elif [[ "$YTDLP_EXIT_CODE" -eq 101 ]]; then
     # Handle other exit 101 cases (not max-downloads related)
     if (grep -q -i "already been recorded in the archive" <<< "$ytdlp_stderr_content" || grep -q -i "already been recorded in the archive" <<< "$ytdlp_stdout_content"); then
         log_debug_event "YouTube" "yt-dlp (exit 101) indicated video is already in archive. Stdout: [$ytdlp_stdout_content] Stderr: [$ytdlp_stderr_content]"
-        log_user_info "YouTube" "Assuming video already processed and available. Exiting successfully."
-        exit 0
+        
+        # CRITICAL FIX: Verify the file actually exists before treating as successful
+        # Look for any video file in the destination directory
+        found_video_file=""
+        if [[ -d "$DEST_DIR_YOUTUBE" ]]; then
+            found_video_file=$(find "$DEST_DIR_YOUTUBE" -maxdepth 2 -type f \( -iname "*.mp4" -o -iname "*.mkv" -o -iname "*.webm" \) -newer "$LOCAL_DIR_YOUTUBE" 2>/dev/null | head -1)
+        fi
+        
+        if [[ -n "$found_video_file" && -f "$found_video_file" ]]; then
+            log_user_info "YouTube" "✅ Found existing video file in destination: $(basename "$found_video_file")"
+            log_user_info "YouTube" "Video already processed and available. Exiting successfully."
+            exit 0
+        else
+            log_warn_event "YouTube" "⚠️ Archive entry found but no video file exists in destination. Removing archive entry to allow retry."
+            # Remove from archive to allow retry
+            if [[ -n "$DOWNLOAD_ARCHIVE_YOUTUBE" && -f "$DOWNLOAD_ARCHIVE_YOUTUBE" ]]; then
+                video_id=""
+                case "$YOUTUBE_URL" in
+                    *"watch?v="*)
+                        video_id="${YOUTUBE_URL#*watch?v=}"
+                        video_id="${video_id%%&*}"
+                        ;;
+                    *"youtu.be/"*)
+                        video_id="${YOUTUBE_URL#*youtu.be/}"
+                        video_id="${video_id%%\?*}"
+                        ;;
+                esac
+                
+                if [[ -n "$video_id" ]]; then
+                    log_debug_event "YouTube" "Removing video ID $video_id from archive to allow retry"
+                    cp "$DOWNLOAD_ARCHIVE_YOUTUBE" "$DOWNLOAD_ARCHIVE_YOUTUBE.bak"
+                    grep -v "youtube $video_id" "$DOWNLOAD_ARCHIVE_YOUTUBE.bak" > "$DOWNLOAD_ARCHIVE_YOUTUBE"
+                    log_debug_event "YouTube" "Removed $video_id from archive - will retry download"
+                fi
+            fi
+            # Continue with normal download process instead of exiting
+        fi
     else
         log_error_event "YouTube" "yt-dlp exited 101 (unhandled reason). Stdout: [$ytdlp_stdout_content] Stderr: [$ytdlp_stderr_content]"
         exit 1

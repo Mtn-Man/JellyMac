@@ -12,8 +12,8 @@
 # - Can fully automate the media acquisition pipeline for Jellyfin users (or Plex/Emby)
 #
 # Author: Eli Sher (Mtn_Man)
-# Version: v0.2.6
-# Last Updated: 2025-06-25
+# Version: v0.2.7
+# Last Updated: 2025-07-02
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
@@ -379,9 +379,6 @@ _SHUTDOWN_IN_PROGRESS=""
 _YOUTUBE_PROCESSING_ACTIVE=""             # Flag to track if YouTube is being processed in foreground
 _ACTIVE_YOUTUBE_URL=""                    # Track the currently downloading YouTube URL
 _ACTIVE_YOUTUBE_PID=""                    # Track the PID of active YouTube download
-
-# --- Torrent Cleanup Tracking ---
-last_torrent_cleanup=0                    # Timestamp of last cleanup (Unix timestamp) 
 
 # --- Caffeinate Management Functions ---
 # Function: _stop_caffeinate_if_running
@@ -929,7 +926,6 @@ _check_clipboard_youtube() {
                 
                 # Fork background monitoring loop
                 {
-                    local last_torrent_cleanup_subshell="$last_torrent_cleanup" # Initialize from global for this subshell's timer
                     while [[ "$_YOUTUBE_PROCESSING_ACTIVE" == "true" ]]; do
                         manage_active_processors
                         
@@ -940,14 +936,7 @@ _check_clipboard_youtube() {
                         fi
                         process_drop_folder
                         
-                        # Time-based torrent cleanup
-                        if [[ "${TRANSMISSION_AUTO_CLEANUP:-false}" == "true" ]]; then
-                            current_time=$(date +%s)
-                            if [[ $((current_time - last_torrent_cleanup_subshell)) -ge 180 ]]; then # Use subshell's timer
-                                cleanup_completed_torrents "JellyMac" # Log source remains JellyMac for consistency
-                                last_torrent_cleanup_subshell=$current_time # Update subshell's timer
-                            fi
-                        fi
+
                         
                         sleep "${MAIN_LOOP_SLEEP_INTERVAL:-2}"
                     done
@@ -1203,7 +1192,7 @@ _acquire_lock  # Ensure only one instance of JellyMac runs at a time
 show_startup_banner  # Call the startup banner function if enabled
 
 log_user_info "JellyMac" "🚀 JellyMac Starting..."
-log_user_info "JellyMac" "Version: v0.2.6 ($(date +%Y-%m-%d))"
+log_user_info "JellyMac" "Version: v0.2.7 ($(date +%Y-%m-%d))"
 log_user_info "JellyMac" "JellyMac location: $JELLYMAC_PROJECT_ROOT"
 log_debug_event "JellyMac" "   Log Level: ${LOG_LEVEL:-INFO} (Effective Syslog Level: $SCRIPT_CURRENT_LOG_LEVEL)"
 if [[ "${LOG_ROTATION_ENABLED:-false}" == "true" && -n "$CURRENT_LOG_FILE_PATH" ]]; then
@@ -1292,7 +1281,7 @@ fi
 
 # --- Log Configuration Summary ---
 log_user_info "JellyMac" ""
-log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.6) ---"
+log_user_info "JellyMac" "--- JellyMac Configuration Summary (v0.2.7) ---"
 log_user_info "JellyMac" "   Check Interval: ${MAIN_LOOP_SLEEP_INTERVAL:-2}s | Max Processors: ${MAX_CONCURRENT_PROCESSORS:-2}"
 log_user_info "JellyMac" ""
 log_user_info "JellyMac" "  Media Destinations:"
@@ -1331,14 +1320,7 @@ log_user_status "JellyMac" "(Press Ctrl+C to exit any time)"
 while true; do
     manage_active_processors    
     
-    # Time-based torrent cleanup (every 3 minutes, independent of main loop timing)
-    if [[ "${TRANSMISSION_AUTO_CLEANUP:-false}" == "true" ]]; then
-        current_time=$(date +%s)
-        if [[ $((current_time - last_torrent_cleanup)) -ge 180 ]]; then
-            cleanup_completed_torrents "JellyMac"
-            last_torrent_cleanup=$current_time
-        fi
-    fi
+
     
     if [[ -n "$PBPASTE_CMD" ]]; then 
         _check_clipboard_youtube; 
