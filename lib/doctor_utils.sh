@@ -652,8 +652,8 @@ offer_transmission_service_enablement() {
                 log_user_info "$log_prefix" "✅ Transmission service started successfully"
                 echo -e "\033[32m✓\033[0m Transmission service has been started and will run automatically on login."
                 echo -e "\033[33m!\033[0m Note: You can manage the service with 'brew services stop transmission' if needed."
-                log_user_info "$log_prefix" "Waiting 3 seconds for service to initialize..."
-                sleep 3
+                log_user_info "$log_prefix" "Waiting 5 seconds for service to initialize..."
+                sleep 5
                 
                 # Verify it's actually running now
                 local transmission_cli="${TORRENT_CLIENT_CLI_PATH:-transmission-remote}"

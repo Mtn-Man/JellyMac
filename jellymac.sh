@@ -66,7 +66,7 @@ if [[ ! -f "$CONFIG_PATH" ]]; then
         echo "It looks like you haven't set up your configuration file yet."
         echo
         
-        read -r -p "         Create default '${CONFIG_FILE_NAME}' from example? (Y/n): " response
+        read -r -p "Create default '${CONFIG_FILE_NAME}' from example? (Y/n): " response
         
         case "$(echo "$response" | tr '[:upper:]' '[:lower:]')" in
             ""|y|yes)
