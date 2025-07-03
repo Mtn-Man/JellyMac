@@ -801,6 +801,13 @@ configure_transmission_download_paths() {
     local transmission_cli="${TORRENT_CLIENT_CLI_PATH:-transmission-remote}"
     local transmission_host="${TRANSMISSION_REMOTE_HOST:-localhost:9091}"
     
+    # Log Transmission version and connectivity
+    log_debug_event "$log_prefix" "Transmission version: $($transmission_cli --version 2>&1)"
+    log_debug_event "$log_prefix" "Testing connectivity with: $transmission_cli $transmission_host --list"
+    local output
+    output=$("$transmission_cli" "$transmission_host" --list 2>&1)
+    log_debug_event "$log_prefix" "Connectivity output: $output"
+    
     # Base command arguments array
     declare -a cmd_args_base=("$transmission_host")
     [[ -n "$TRANSMISSION_REMOTE_AUTH" ]] && cmd_args_base+=("--auth" "$TRANSMISSION_REMOTE_AUTH")
@@ -808,6 +815,11 @@ configure_transmission_download_paths() {
     local success=true
 
     # 1. Enable incomplete directory
+    log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled --boolean true"
+    output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled --boolean true 2>&1)
+    local exit_code=$?
+    log_debug_event "$log_prefix" "Output: $output"
+    log_debug_event "$log_prefix" "Exit code: $exit_code"
     if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled --boolean true >/dev/null 2>&1; then
         log_error_event "$log_prefix" "❌ Failed to enable Transmission incomplete directory feature."
         success=false
@@ -817,6 +829,11 @@ configure_transmission_download_paths() {
 
     # 2. Set incomplete directory path
     if [[ "$success" == "true" ]]; then
+        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir \"$incomplete_dir_path\""
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" 2>&1)
+        exit_code=$?
+        log_debug_event "$log_prefix" "Output: $output"
+        log_debug_event "$log_prefix" "Exit code: $exit_code"
         if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" >/dev/null 2>&1; then
             log_error_event "$log_prefix" "❌ Failed to set Transmission incomplete directory to: $incomplete_dir_path"
             success=false
@@ -827,6 +844,11 @@ configure_transmission_download_paths() {
 
     # 3. Set download directory (completed directory)
     if [[ "$success" == "true" ]]; then
+        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set download-dir \"$completed_dir\""
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" 2>&1)
+        exit_code=$?
+        log_debug_event "$log_prefix" "Output: $output"
+        log_debug_event "$log_prefix" "Exit code: $exit_code"
         if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" >/dev/null 2>&1; then
             log_error_event "$log_prefix" "❌ Failed to set Transmission download (completed) directory to: $completed_dir"
             success=false
