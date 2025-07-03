@@ -1118,7 +1118,7 @@ process_drop_folder() {
             fi
 
             log_user_info "JellyMac" "🚀 Launching media processor for '$item_basename'. Type: $item_type_for_processor, Hint: '$category_hint_for_processor'"
-            play_sound_notification "input_detected" "$_WATCHER_LOG_PREFIX" 
+            # play_sound_notification "input_detected" "$_WATCHER_LOG_PREFIX" 
 
             local ts_launch; ts_launch=$(date +%s)
             "$PROCESS_MEDIA_ITEM_SCRIPT" "$item_type_for_processor" "$item_path" "$category_hint_for_processor" & 
