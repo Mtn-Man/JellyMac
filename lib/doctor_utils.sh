@@ -814,20 +814,20 @@ configure_transmission_download_paths() {
 
     local success=true
 
-    # 1. Enable incomplete directory
-    log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled --boolean true"
-    output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled --boolean true 2>&1)
+    # 1. Enable incomplete directory feature (remove --boolean)
+    log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled true"
+    output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled true 2>&1)
     local exit_code=$?
     log_debug_event "$log_prefix" "Output: $output"
     log_debug_event "$log_prefix" "Exit code: $exit_code"
-    if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled --boolean true >/dev/null 2>&1; then
+    if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled true >/dev/null 2>&1; then
         log_error_event "$log_prefix" "❌ Failed to enable Transmission incomplete directory feature."
         success=false
     else
         log_debug_event "$log_prefix" "✅ Enabled Transmission incomplete directory feature."
     fi
 
-    # 2. Set incomplete directory path
+    # 2. Set incomplete directory path (this one is correct)
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir \"$incomplete_dir_path\""
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" 2>&1)
@@ -842,7 +842,7 @@ configure_transmission_download_paths() {
         fi
     fi
 
-    # 3. Set download directory (completed directory)
+    # 3. Set download directory (this one is correct)
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set download-dir \"$completed_dir\""
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" 2>&1)
@@ -854,6 +854,36 @@ configure_transmission_download_paths() {
             success=false
         else
             log_debug_event "$log_prefix" "✅ Set Transmission download (completed) directory to: $completed_dir"
+        fi
+    fi
+    
+    # 4. Enable seeding ratio limit (add this)
+    if [[ "$success" == "true" ]]; then
+        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set ratio-limit-enabled true"
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true 2>&1)
+        exit_code=$?
+        log_debug_event "$log_prefix" "Output: $output"
+        log_debug_event "$log_prefix" "Exit code: $exit_code"
+        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true >/dev/null 2>&1; then
+            log_error_event "$log_prefix" "❌ Failed to enable Transmission seeding ratio limit."
+            success=false
+        else
+            log_debug_event "$log_prefix" "✅ Enabled Transmission seeding ratio limit."
+        fi
+    fi
+    
+    # 5. Set seeding ratio to 0 (add this)
+    if [[ "$success" == "true" ]]; then
+        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set ratio-limit 0"
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit 0 2>&1)
+        exit_code=$?
+        log_debug_event "$log_prefix" "Output: $output"
+        log_debug_event "$log_prefix" "Exit code: $exit_code"
+        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit 0 >/dev/null 2>&1; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission seeding ratio to 0."
+            success=false
+        else
+            log_debug_event "$log_prefix" "✅ Set Transmission seeding ratio to 0."
         fi
     fi
     
