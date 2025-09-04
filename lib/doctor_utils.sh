@@ -857,7 +857,7 @@ configure_transmission_download_paths() {
         fi
     fi
     
-    # 4. Enable seeding ratio limit (add this)
+    # 4. Enable seeding ratio limit
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set ratio-limit-enabled true"
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true 2>&1)

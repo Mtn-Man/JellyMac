@@ -264,6 +264,7 @@ _ensure_log_file_updated # Initial setup call
 # Dev Note: makes heavy use of shellcheck disable=SC2317 to prevent false positives, 
 # since this is a helper for the emoji-based logging system in loggin_utils.sh.
 #==============================================================================
+# shellcheck disable=SC2329
 _log_to_current_file() {
     # shellcheck disable=SC2317
     local required_level_num="$1"
@@ -325,10 +326,6 @@ _log_to_current_file() {
 }
 export -f _log_to_current_file
 
-# Define local log function for jellymac.sh using the modern emoji-based system
-# shellcheck disable=SC2317
-log_debug() { log_debug_event "JellyMac" "$1"; }
-
 
 # --- Single Instance Lock ---
 LOCK_FILE="${STATE_DIR}/jellymac.sh.lock"
@@ -352,6 +349,7 @@ _acquire_lock() {
     fi
     log_debug_event "JellyMac" "Instance lock acquired: $LOCK_FILE"
 }
+# shellcheck disable=SC2329
 _release_lock() {
     # shellcheck disable=SC2317
     log_debug_event "JellyMac" "Releasing instance lock: $LOCK_FILE"
@@ -444,6 +442,7 @@ _start_caffeinate_if_needed() {
 # Description: Cleans up any temporary files created by the watcher
 # Parameters: None
 # Returns: None
+# shellcheck disable=SC2329
 _cleanup_jellymac_temp_files() {
     #shellcheck disable=SC2317
     log_debug_event "JellyMac" "Cleaning up jellymac.sh specific temp files..."
@@ -457,6 +456,7 @@ _cleanup_jellymac_temp_files() {
 # Returns: None (exits the script)
 # Note: Registered as a trap for SIGINT, SIGTERM, and EXIT signals
 # We make heavy use of shellcheck disable=SC2317 to prevent false positives in shutdown functions
+# shellcheck disable=SC2329
 graceful_shutdown_and_cleanup() {
     # Prevent duplicate execution
     #shellcheck disable=SC2317
@@ -763,6 +763,7 @@ check_and_resume_youtube_queue() {
 # Side Effects: Cleans up partial files, removes from archive, re-queues URL
 # Dev note: We make heavy use of shellcheck disable=SC2317 to prevent false positives
 #==============================================================================
+# shellcheck disable=SC2329
 _handle_interrupted_youtube_download() {
     # shellcheck disable=SC2317
     log_debug_event "JellyMac" "Cleaning up interrupted YouTube download: ${_ACTIVE_YOUTUBE_URL:0:60}..."
@@ -817,6 +818,7 @@ _handle_interrupted_youtube_download() {
 #   $1 - YouTube URL to remove from archive
 # Returns: None
 #==============================================================================
+# shellcheck disable=SC2329
 _remove_url_from_youtube_archive() {
     # shellcheck disable=SC2317
     local url_to_remove="$1"

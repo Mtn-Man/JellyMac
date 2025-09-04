@@ -20,6 +20,7 @@ LIB_DIR="$(cd "${SCRIPT_DIR}/../lib" && pwd)" # Assumes lib is one level up from
 # Parameters: None
 # Returns: None
 #==============================================================================
+# shellcheck disable=SC2329
 _cleanup_script_temp_files() {
     # shellcheck disable=SC2317
     if [[ ${#_SCRIPT_TEMP_FILES_TO_CLEAN[@]} -gt 0 ]]; then

@@ -23,6 +23,7 @@ _SCRIPT_TEMP_FILES_TO_CLEAN=()
 # Parameters: None
 # Returns: None
 # Side Effects: Removes all tracked temporary files and clears the tracking array
+# shellcheck disable=SC2329
 _cleanup_script_temp_files() {
     # shellcheck disable=SC2128 # We want to check array length
     # shellcheck disable=SC2317 

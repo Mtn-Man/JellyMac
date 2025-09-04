@@ -18,3 +18,4 @@ _incomplete_torrents/
 # General log files and backups that might be created anywhere.
 *.log
 *.bak
+--download-archive.txt
