@@ -13,7 +13,7 @@
 #
 # Author: Eli Sher (Mtn_Man)
 # Version: v0.2.7
-# Last Updated: 2025-07-02
+# Last Updated: 2025-09-04
 # License: MIT Open Source
 
 # --- Set Terminal Title ---
