@@ -860,23 +860,23 @@ configure_transmission_download_paths() {
 
     local success=true
 
-    # TEMPORARY DEBUG: Test session-get before trying session-set
-    log_debug_event "$log_prefix" "Testing session-get to verify daemon is responsive..."
+    # TEMPORARY DEBUG: Test session access before trying session-set
+    log_debug_event "$log_prefix" "Testing session access to verify daemon is responsive..."
     local session_output
-    session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get 2>&1)
+    session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session 2>&1)
     local session_exit_code=$?
-    log_debug_event "$log_prefix" "Session-get exit code: $session_exit_code"
-    log_debug_event "$log_prefix" "Session-get output (first 20 lines):"
+    log_debug_event "$log_prefix" "Session access exit code: $session_exit_code"
+    log_debug_event "$log_prefix" "Session access output (first 20 lines):"
     echo "$session_output" | head -20 | while read -r line; do
         log_debug_event "$log_prefix" "  $line"
     done
 
     # 1. Enable incomplete directory feature
     log_debug_event "$log_prefix" "=== STEP 1: Enable incomplete directory feature ==="
-    local full_cmd_1="$transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled true"
+    local full_cmd_1="$transmission_cli ${cmd_args_base[*]} --session incomplete-dir-enabled=true"
     log_debug_event "$log_prefix" "Full command: '$full_cmd_1'"
     
-    output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled true 2>&1)
+    output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir-enabled=true 2>&1)
     local exit_code=$?
     log_debug_event "$log_prefix" "Command exit code: $exit_code"
     log_debug_event "$log_prefix" "Command output: '$output'"
@@ -884,7 +884,7 @@ configure_transmission_download_paths() {
     # TEMPORARY DEBUG: Verify the setting was applied
     log_debug_event "$log_prefix" "Verifying incomplete-dir-enabled setting..."
     local verify_output
-    verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get incomplete-dir-enabled 2>&1)
+    verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir-enabled 2>&1)
     local verify_exit_code=$?
     log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
     log_debug_event "$log_prefix" "Verify output: '$verify_output'"
@@ -900,17 +900,17 @@ configure_transmission_download_paths() {
     # 2. Set incomplete directory path
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 2: Set incomplete directory path ==="
-        local full_cmd_2="$transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir \"$incomplete_dir_path\""
+        local full_cmd_2="$transmission_cli ${cmd_args_base[*]} --session incomplete-dir=\"$incomplete_dir_path\""
         log_debug_event "$log_prefix" "Full command: '$full_cmd_2'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir="$incomplete_dir_path" 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
         
         # TEMPORARY DEBUG: Verify the setting was applied
         log_debug_event "$log_prefix" "Verifying incomplete-dir setting..."
-        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get incomplete-dir 2>&1)
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir 2>&1)
         verify_exit_code=$?
         log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
         log_debug_event "$log_prefix" "Verify output: '$verify_output'"
@@ -927,17 +927,17 @@ configure_transmission_download_paths() {
     # 3. Set download directory
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 3: Set download directory ==="
-        local full_cmd_3="$transmission_cli ${cmd_args_base[*]} --session-set download-dir \"$completed_dir\""
+        local full_cmd_3="$transmission_cli ${cmd_args_base[*]} --session download-dir=\"$completed_dir\""
         log_debug_event "$log_prefix" "Full command: '$full_cmd_3'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session download-dir="$completed_dir" 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
         
         # TEMPORARY DEBUG: Verify the setting was applied
         log_debug_event "$log_prefix" "Verifying download-dir setting..."
-        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get download-dir 2>&1)
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session download-dir 2>&1)
         verify_exit_code=$?
         log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
         log_debug_event "$log_prefix" "Verify output: '$verify_output'"
@@ -954,10 +954,10 @@ configure_transmission_download_paths() {
     # 4. Enable seeding ratio limit
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 4: Enable seeding ratio limit ==="
-        local full_cmd_4="$transmission_cli ${cmd_args_base[*]} --session-set ratio-limit-enabled true"
+        local full_cmd_4="$transmission_cli ${cmd_args_base[*]} --session seedRatioLimited=true"
         log_debug_event "$log_prefix" "Full command: '$full_cmd_4'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session seedRatioLimited=true 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
@@ -974,10 +974,10 @@ configure_transmission_download_paths() {
     # 5. Set seeding ratio to 0
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 5: Set seeding ratio to 0 ==="
-        local full_cmd_5="$transmission_cli ${cmd_args_base[*]} --session-set ratio-limit 0"
+        local full_cmd_5="$transmission_cli ${cmd_args_base[*]} --session seedRatioLimit=0"
         log_debug_event "$log_prefix" "Full command: '$full_cmd_5'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit 0 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --session seedRatioLimit=0 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
@@ -995,10 +995,10 @@ configure_transmission_download_paths() {
     log_debug_event "$log_prefix" "=== FINAL VERIFICATION ==="
     log_debug_event "$log_prefix" "Getting all session settings..."
     local final_session_output
-    final_session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get 2>&1)
+    final_session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session 2>&1)
     local final_exit_code=$?
-    log_debug_event "$log_prefix" "Final session-get exit code: $final_exit_code"
-    log_debug_event "$log_prefix" "Final session-get output:"
+    log_debug_event "$log_prefix" "Final session access exit code: $final_exit_code"
+    log_debug_event "$log_prefix" "Final session access output:"
     echo "$final_session_output" | while read -r line; do
         log_debug_event "$log_prefix" "  $line"
     done
