@@ -783,6 +783,16 @@ configure_transmission_download_paths() {
     local incomplete_dir_path="${JELLYMAC_PROJECT_ROOT}/_incomplete_torrents"
     local completed_dir="$DROP_FOLDER"
 
+    # TEMPORARY DEBUG: Log all environment variables
+    log_debug_event "$log_prefix" "=== TRANSMISSION CONFIG DEBUG START ==="
+    log_debug_event "$log_prefix" "JELLYMAC_PROJECT_ROOT: '$JELLYMAC_PROJECT_ROOT'"
+    log_debug_event "$log_prefix" "DROP_FOLDER: '$DROP_FOLDER'"
+    log_debug_event "$log_prefix" "TORRENT_CLIENT_CLI_PATH: '${TORRENT_CLIENT_CLI_PATH:-transmission-remote}'"
+    log_debug_event "$log_prefix" "TRANSMISSION_REMOTE_HOST: '${TRANSMISSION_REMOTE_HOST:-localhost:9091}'"
+    log_debug_event "$log_prefix" "TRANSMISSION_REMOTE_AUTH: '${TRANSMISSION_REMOTE_AUTH:-[not set]}'"
+    log_debug_event "$log_prefix" "incomplete_dir_path: '$incomplete_dir_path'"
+    log_debug_event "$log_prefix" "completed_dir: '$completed_dir'"
+
     # Ensure the project-based incomplete directory exists
     if [[ ! -d "$incomplete_dir_path" ]]; then
         log_user_info "$log_prefix" "Creating Transmission incomplete directory: $incomplete_dir_path"
@@ -801,91 +811,199 @@ configure_transmission_download_paths() {
     local transmission_cli="${TORRENT_CLIENT_CLI_PATH:-transmission-remote}"
     local transmission_host="${TRANSMISSION_REMOTE_HOST:-localhost:9091}"
     
+    # TEMPORARY DEBUG: Check if transmission-remote exists and is executable
+    log_debug_event "$log_prefix" "Checking transmission-remote availability..."
+    if ! command -v "$transmission_cli" >/dev/null 2>&1; then
+        log_error_event "$log_prefix" "❌ transmission-remote command not found: '$transmission_cli'"
+        log_debug_event "$log_prefix" "Available transmission commands:"
+        which transmission-remote 2>&1 | log_debug_event "$log_prefix" "  which transmission-remote:"
+        find /usr/local/bin -name "transmission*" -exec ls -la {} \; 2>&1 | log_debug_event "$log_prefix" "  /usr/local/bin/transmission*:"
+        find /opt/homebrew/bin -name "transmission*" -exec ls -la {} \; 2>&1 | log_debug_event "$log_prefix" "  /opt/homebrew/bin/transmission*:"
+        return 1
+    fi
+    
+    # TEMPORARY DEBUG: Log full path and permissions
+    local transmission_full_path
+    transmission_full_path=$(which "$transmission_cli")
+    log_debug_event "$log_prefix" "transmission-remote full path: '$transmission_full_path'"
+    find "$transmission_full_path" -exec ls -la {} \; 2>&1 | log_debug_event "$log_prefix" "  permissions:"
+    
     # Log Transmission version and connectivity
     log_debug_event "$log_prefix" "Transmission version: $($transmission_cli --version 2>&1)"
     log_debug_event "$log_prefix" "Testing connectivity with: $transmission_cli $transmission_host --list"
     local output
     output=$("$transmission_cli" "$transmission_host" --list 2>&1)
-    log_debug_event "$log_prefix" "Connectivity output: $output"
+    local connectivity_exit_code=$?
+    log_debug_event "$log_prefix" "Connectivity exit code: $connectivity_exit_code"
+    log_debug_event "$log_prefix" "Connectivity output: '$output'"
+    
+    # TEMPORARY DEBUG: Test basic connectivity without arguments
+    log_debug_event "$log_prefix" "Testing basic transmission-remote help..."
+    local help_output
+    help_output=$("$transmission_cli" --help 2>&1)
+    local help_exit_code=$?
+    log_debug_event "$log_prefix" "Help exit code: $help_exit_code"
+    log_debug_event "$log_prefix" "Help output (first 10 lines):"
+    echo "$help_output" | head -10 | while read -r line; do
+        log_debug_event "$log_prefix" "  $line"
+    done
     
     # Base command arguments array
     declare -a cmd_args_base=("$transmission_host")
     [[ -n "$TRANSMISSION_REMOTE_AUTH" ]] && cmd_args_base+=("--auth" "$TRANSMISSION_REMOTE_AUTH")
+    
+    # TEMPORARY DEBUG: Log the exact command arguments
+    log_debug_event "$log_prefix" "Command arguments array:"
+    for i in "${!cmd_args_base[@]}"; do
+        log_debug_event "$log_prefix" "  [$i]='${cmd_args_base[$i]}'"
+    done
 
     local success=true
 
-    # 1. Enable incomplete directory feature (remove --boolean)
-    log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled true"
+    # TEMPORARY DEBUG: Test session-get before trying session-set
+    log_debug_event "$log_prefix" "Testing session-get to verify daemon is responsive..."
+    local session_output
+    session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get 2>&1)
+    local session_exit_code=$?
+    log_debug_event "$log_prefix" "Session-get exit code: $session_exit_code"
+    log_debug_event "$log_prefix" "Session-get output (first 20 lines):"
+    echo "$session_output" | head -20 | while read -r line; do
+        log_debug_event "$log_prefix" "  $line"
+    done
+
+    # 1. Enable incomplete directory feature
+    log_debug_event "$log_prefix" "=== STEP 1: Enable incomplete directory feature ==="
+    local full_cmd_1="$transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir-enabled true"
+    log_debug_event "$log_prefix" "Full command: '$full_cmd_1'"
+    
     output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled true 2>&1)
     local exit_code=$?
-    log_debug_event "$log_prefix" "Output: $output"
-    log_debug_event "$log_prefix" "Exit code: $exit_code"
-    if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir-enabled true >/dev/null 2>&1; then
-        log_error_event "$log_prefix" "❌ Failed to enable Transmission incomplete directory feature."
+    log_debug_event "$log_prefix" "Command exit code: $exit_code"
+    log_debug_event "$log_prefix" "Command output: '$output'"
+    
+    # TEMPORARY DEBUG: Verify the setting was applied
+    log_debug_event "$log_prefix" "Verifying incomplete-dir-enabled setting..."
+    local verify_output
+    verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get incomplete-dir-enabled 2>&1)
+    local verify_exit_code=$?
+    log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
+    log_debug_event "$log_prefix" "Verify output: '$verify_output'"
+    
+    if [[ $exit_code -ne 0 ]]; then
+        log_error_event "$log_prefix" "❌ Failed to enable Transmission incomplete directory feature (exit code: $exit_code)"
+        log_error_event "$log_prefix" "Error output: '$output'"
         success=false
     else
         log_debug_event "$log_prefix" "✅ Enabled Transmission incomplete directory feature."
     fi
 
-    # 2. Set incomplete directory path (this one is correct)
+    # 2. Set incomplete directory path
     if [[ "$success" == "true" ]]; then
-        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir \"$incomplete_dir_path\""
+        log_debug_event "$log_prefix" "=== STEP 2: Set incomplete directory path ==="
+        local full_cmd_2="$transmission_cli ${cmd_args_base[*]} --session-set incomplete-dir \"$incomplete_dir_path\""
+        log_debug_event "$log_prefix" "Full command: '$full_cmd_2'"
+        
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" 2>&1)
         exit_code=$?
-        log_debug_event "$log_prefix" "Output: $output"
-        log_debug_event "$log_prefix" "Exit code: $exit_code"
-        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set incomplete-dir "$incomplete_dir_path" >/dev/null 2>&1; then
-            log_error_event "$log_prefix" "❌ Failed to set Transmission incomplete directory to: $incomplete_dir_path"
+        log_debug_event "$log_prefix" "Command exit code: $exit_code"
+        log_debug_event "$log_prefix" "Command output: '$output'"
+        
+        # TEMPORARY DEBUG: Verify the setting was applied
+        log_debug_event "$log_prefix" "Verifying incomplete-dir setting..."
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get incomplete-dir 2>&1)
+        verify_exit_code=$?
+        log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
+        log_debug_event "$log_prefix" "Verify output: '$verify_output'"
+        
+        if [[ $exit_code -ne 0 ]]; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission incomplete directory to: $incomplete_dir_path (exit code: $exit_code)"
+            log_error_event "$log_prefix" "Error output: '$output'"
             success=false
         else
             log_debug_event "$log_prefix" "✅ Set Transmission incomplete directory to: $incomplete_dir_path"
         fi
     fi
 
-    # 3. Set download directory (this one is correct)
+    # 3. Set download directory
     if [[ "$success" == "true" ]]; then
-        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set download-dir \"$completed_dir\""
+        log_debug_event "$log_prefix" "=== STEP 3: Set download directory ==="
+        local full_cmd_3="$transmission_cli ${cmd_args_base[*]} --session-set download-dir \"$completed_dir\""
+        log_debug_event "$log_prefix" "Full command: '$full_cmd_3'"
+        
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" 2>&1)
         exit_code=$?
-        log_debug_event "$log_prefix" "Output: $output"
-        log_debug_event "$log_prefix" "Exit code: $exit_code"
-        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set download-dir "$completed_dir" >/dev/null 2>&1; then
-            log_error_event "$log_prefix" "❌ Failed to set Transmission download (completed) directory to: $completed_dir"
+        log_debug_event "$log_prefix" "Command exit code: $exit_code"
+        log_debug_event "$log_prefix" "Command output: '$output'"
+        
+        # TEMPORARY DEBUG: Verify the setting was applied
+        log_debug_event "$log_prefix" "Verifying download-dir setting..."
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get download-dir 2>&1)
+        verify_exit_code=$?
+        log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
+        log_debug_event "$log_prefix" "Verify output: '$verify_output'"
+        
+        if [[ $exit_code -ne 0 ]]; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission download directory to: $completed_dir (exit code: $exit_code)"
+            log_error_event "$log_prefix" "Error output: '$output'"
             success=false
         else
-            log_debug_event "$log_prefix" "✅ Set Transmission download (completed) directory to: $completed_dir"
+            log_debug_event "$log_prefix" "✅ Set Transmission download directory to: $completed_dir"
         fi
     fi
     
     # 4. Enable seeding ratio limit
     if [[ "$success" == "true" ]]; then
-        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set ratio-limit-enabled true"
+        log_debug_event "$log_prefix" "=== STEP 4: Enable seeding ratio limit ==="
+        local full_cmd_4="$transmission_cli ${cmd_args_base[*]} --session-set ratio-limit-enabled true"
+        log_debug_event "$log_prefix" "Full command: '$full_cmd_4'"
+        
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true 2>&1)
         exit_code=$?
-        log_debug_event "$log_prefix" "Output: $output"
-        log_debug_event "$log_prefix" "Exit code: $exit_code"
-        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit-enabled true >/dev/null 2>&1; then
-            log_error_event "$log_prefix" "❌ Failed to enable Transmission seeding ratio limit."
+        log_debug_event "$log_prefix" "Command exit code: $exit_code"
+        log_debug_event "$log_prefix" "Command output: '$output'"
+        
+        if [[ $exit_code -ne 0 ]]; then
+            log_error_event "$log_prefix" "❌ Failed to enable Transmission seeding ratio limit (exit code: $exit_code)"
+            log_error_event "$log_prefix" "Error output: '$output'"
             success=false
         else
             log_debug_event "$log_prefix" "✅ Enabled Transmission seeding ratio limit."
         fi
     fi
     
-    # 5. Set seeding ratio to 0 (add this)
+    # 5. Set seeding ratio to 0
     if [[ "$success" == "true" ]]; then
-        log_debug_event "$log_prefix" "Running: $transmission_cli ${cmd_args_base[*]} --session-set ratio-limit 0"
+        log_debug_event "$log_prefix" "=== STEP 5: Set seeding ratio to 0 ==="
+        local full_cmd_5="$transmission_cli ${cmd_args_base[*]} --session-set ratio-limit 0"
+        log_debug_event "$log_prefix" "Full command: '$full_cmd_5'"
+        
         output=$("$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit 0 2>&1)
         exit_code=$?
-        log_debug_event "$log_prefix" "Output: $output"
-        log_debug_event "$log_prefix" "Exit code: $exit_code"
-        if ! "$transmission_cli" "${cmd_args_base[@]}" --session-set ratio-limit 0 >/dev/null 2>&1; then
-            log_error_event "$log_prefix" "❌ Failed to set Transmission seeding ratio to 0."
+        log_debug_event "$log_prefix" "Command exit code: $exit_code"
+        log_debug_event "$log_prefix" "Command output: '$output'"
+        
+        if [[ $exit_code -ne 0 ]]; then
+            log_error_event "$log_prefix" "❌ Failed to set Transmission seeding ratio to 0 (exit code: $exit_code)"
+            log_error_event "$log_prefix" "Error output: '$output'"
             success=false
         else
             log_debug_event "$log_prefix" "✅ Set Transmission seeding ratio to 0."
         fi
     fi
+    
+    # TEMPORARY DEBUG: Final verification of all settings
+    log_debug_event "$log_prefix" "=== FINAL VERIFICATION ==="
+    log_debug_event "$log_prefix" "Getting all session settings..."
+    local final_session_output
+    final_session_output=$("$transmission_cli" "${cmd_args_base[@]}" --session-get 2>&1)
+    local final_exit_code=$?
+    log_debug_event "$log_prefix" "Final session-get exit code: $final_exit_code"
+    log_debug_event "$log_prefix" "Final session-get output:"
+    echo "$final_session_output" | while read -r line; do
+        log_debug_event "$log_prefix" "  $line"
+    done
+    
+    log_debug_event "$log_prefix" "=== TRANSMISSION CONFIG DEBUG END ==="
     
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "✅ Successfully configured all Transmission paths."
