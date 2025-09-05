@@ -873,10 +873,10 @@ configure_transmission_download_paths() {
 
     # 1. Enable incomplete directory feature
     log_debug_event "$log_prefix" "=== STEP 1: Enable incomplete directory feature ==="
-    local full_cmd_1="$transmission_cli ${cmd_args_base[*]} --session incomplete-dir-enabled=true"
+    local full_cmd_1="$transmission_cli ${cmd_args_base[*]} --incomplete-dir-enabled"
     log_debug_event "$log_prefix" "Full command: '$full_cmd_1'"
     
-    output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir-enabled=true 2>&1)
+    output=$("$transmission_cli" "${cmd_args_base[@]}" --incomplete-dir-enabled 2>&1)
     local exit_code=$?
     log_debug_event "$log_prefix" "Command exit code: $exit_code"
     log_debug_event "$log_prefix" "Command output: '$output'"
@@ -884,7 +884,7 @@ configure_transmission_download_paths() {
     # TEMPORARY DEBUG: Verify the setting was applied
     log_debug_event "$log_prefix" "Verifying incomplete-dir-enabled setting..."
     local verify_output
-    verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir-enabled 2>&1)
+    verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --incomplete-dir-enabled 2>&1)
     local verify_exit_code=$?
     log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
     log_debug_event "$log_prefix" "Verify output: '$verify_output'"
@@ -900,17 +900,17 @@ configure_transmission_download_paths() {
     # 2. Set incomplete directory path
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 2: Set incomplete directory path ==="
-        local full_cmd_2="$transmission_cli ${cmd_args_base[*]} --session incomplete-dir=\"$incomplete_dir_path\""
+        local full_cmd_2="$transmission_cli ${cmd_args_base[*]} --incomplete-dir \"$incomplete_dir_path\""
         log_debug_event "$log_prefix" "Full command: '$full_cmd_2'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir="$incomplete_dir_path" 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --incomplete-dir "$incomplete_dir_path" 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
         
         # TEMPORARY DEBUG: Verify the setting was applied
         log_debug_event "$log_prefix" "Verifying incomplete-dir setting..."
-        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session incomplete-dir 2>&1)
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --incomplete-dir 2>&1)
         verify_exit_code=$?
         log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
         log_debug_event "$log_prefix" "Verify output: '$verify_output'"
@@ -927,17 +927,17 @@ configure_transmission_download_paths() {
     # 3. Set download directory
     if [[ "$success" == "true" ]]; then
         log_debug_event "$log_prefix" "=== STEP 3: Set download directory ==="
-        local full_cmd_3="$transmission_cli ${cmd_args_base[*]} --session download-dir=\"$completed_dir\""
+        local full_cmd_3="$transmission_cli ${cmd_args_base[*]} --download-dir \"$completed_dir\""
         log_debug_event "$log_prefix" "Full command: '$full_cmd_3'"
         
-        output=$("$transmission_cli" "${cmd_args_base[@]}" --session download-dir="$completed_dir" 2>&1)
+        output=$("$transmission_cli" "${cmd_args_base[@]}" --download-dir "$completed_dir" 2>&1)
         exit_code=$?
         log_debug_event "$log_prefix" "Command exit code: $exit_code"
         log_debug_event "$log_prefix" "Command output: '$output'"
         
         # TEMPORARY DEBUG: Verify the setting was applied
         log_debug_event "$log_prefix" "Verifying download-dir setting..."
-        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --session download-dir 2>&1)
+        verify_output=$("$transmission_cli" "${cmd_args_base[@]}" --download-dir 2>&1)
         verify_exit_code=$?
         log_debug_event "$log_prefix" "Verify exit code: $verify_exit_code"
         log_debug_event "$log_prefix" "Verify output: '$verify_output'"
