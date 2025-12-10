@@ -140,7 +140,7 @@ END_ASSOCIATED_FILE_EXTENSIONS
 # Tags to be removed from filenames during cleanup.
 # Add or remove tags separated by a pipe character | Do not use spaces.
 # All tags are case-insensitive.
-MEDIA_TAG_BLACKLIST="2160p|1080p|720p|480p|web[- ]?dl|webrip|bluray|brrip|hdrip|ddp5?\\.1|aac|ac3|x265|x264|hevc|h\\.264|h\\.265|remux|neonoir|sdrip|re-encoded"
+MEDIA_TAG_BLACKLIST="2160p|1080p|720p|480p|web[- ]?dl|webrip|bluray|brrip|hdrip|ddp5?\\.1|aac|ac3|x265|x264|hevc|h\\.264|h\\.265|remux|neonoir|sdrip|re-encoded|ETRG"
 
 # === FILE TRANSFER & CLEANUP ===
 PERFORM_POST_TRANSFER_DELETE="true"
