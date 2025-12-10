@@ -1032,7 +1032,6 @@ _check_clipboard_magnet() {
                 {
                     if "$HANDLE_MAGNET_SCRIPT" "$trimmed_cb"; then
                         log_user_info "JellyMac" "✅ Magnet link sent to Transmission: '${trimmed_cb:0:60}...'"
-                        send_desktop_notification "JellyMac: Magnet Added" "Sent to Transmission: ${trimmed_cb:0:50}..."
                     else
                         log_warn_event "JellyMac" "❌ Failed to process magnet link: '${trimmed_cb:0:60}...'"
                         send_desktop_notification "JellyMac: Magnet Error" "Failed: ${trimmed_cb:0:50}..." "Basso"

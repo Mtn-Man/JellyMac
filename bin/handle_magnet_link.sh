@@ -219,11 +219,6 @@ if [[ "$transmission_exit_code" -eq 0 && "$transmission_output" =~ "success" ]];
         log_debug_event "Torrent" "Recorded magnet hash to archive: $DOWNLOAD_ARCHIVE_MAGNET"
     fi
     
-    # Send desktop notification on success if enabled
-    if [[ "${ENABLE_DESKTOP_NOTIFICATIONS:-false}" == "true" ]]; then
-        send_desktop_notification "JellyMac: Torrent Added" "Sent to Transmission: ${MAGNET_HASH}"
-    fi
-    
     log_user_complete "Torrent" "✅ Magnet link processing completed successfully"
     exit 0
 else
